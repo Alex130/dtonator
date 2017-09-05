@@ -143,6 +143,19 @@ public class DtoConfigTest {
   }
 
   @Test
+  public void testMappedOverridesFromJavaUtilSet() {
+    // given a domain object with some children
+    oracle.addProperty("com.domain.Foo", "children", "java.util.Set<Child>");
+    // and an override property of ArrayList
+    addDto("FooDto", domain("Foo"), properties("children HashSet<String>"));
+    final DtoConfig dc = rootConfig.getDto("FooDto");
+    // then we get the right type
+    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.HashSet<java.lang.String>"));
+    assertThat(dc.getProperties().get(0).getDomainType(), is("java.util.Set<Child>"));
+    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+  }
+
+  @Test
   public void testMappedPropertiesThatAreValueTypes() {
     // given a domain object with a value types
     oracle.addProperty("com.domain.Foo", "a", "com.domain.ValueType");

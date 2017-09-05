@@ -30,7 +30,12 @@ public class GenerateDto {
   private final DtoConfig dto;
   private final GClass gc;
 
-  public GenerateDto(final RootConfig config, final GDirectory out, final GClass mapper, final List<String> takenToDtoOverloads, final DtoConfig dto) {
+  public GenerateDto(
+    final RootConfig config,
+    final GDirectory out,
+    final GClass mapper,
+    final List<String> takenToDtoOverloads,
+    final DtoConfig dto) {
     this.config = config;
     this.out = out;
     this.mapper = mapper;
@@ -137,12 +142,21 @@ public class GenerateDto {
             m.body.line("_ _ {}Copy.add({}.copyOf(e));", dp.getName(), dp.getSingleDto());
           }
           m.body.line("_ }");
+        } else if (dp.isSetOfDtos()) {
+          m.body.line("_ HashSet<{}> {}Copy = new HashSet<{}>();", dp.getSingleDto(), dp.getName(), dp.getSingleDto());
+          m.body.line("_ for ({} e : (({}) o).{}) {", dp.getSingleDto(), c.getDtoType(), dp.getName());
+          if (dp.getSingleDto().isEnum()) {
+            m.body.line("_ _ {}Copy.add(e);", dp.getName());
+          } else {
+            m.body.line("_ _ {}Copy.add({}.copyOf(e));", dp.getName(), dp.getSingleDto());
+          }
+          m.body.line("_ }");
         }
       }
       // now call the constructor
       m.body.line("_ return new {}(", c.getDtoType());
       for (final DtoProperty dp : c.getAllProperties()) {
-        if (dp.isListOfDtos()) {
+        if (dp.isListOfDtos() || dp.isSetOfDtos()) {
           m.body.line("_ _ {}Copy,", dp.getName());
         } else if (dp.isDto()) {
           m.body.line("_ _ {}.copyOf((({}) o).{}),", dp.getDtoType(), c.getDtoType(), dp.getName());
@@ -267,6 +281,20 @@ public class GenerateDto {
         c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
         c.body.line("}");
         c.body.line("return dtos;");
+      } else if (dp.isSetOfEntities()) {
+        // make and delegate to a method to convert the entities to dtos
+        toDto.body.line("_ {}For{}(o.{}()),", dp.getName(), dto.getSimpleName(), dp.getGetterMethodName());
+        final GMethod c = mapper.getMethod(dp.getName() + "For" + dto.getSimpleName(), arg(dp.getDomainType(), "os"));
+        c.returnType(dp.getDtoType()).setPrivate();
+        // assumes dto type can be instantiated
+        c.body.line("if (os == null) {");
+        c.body.line("_ return null;");
+        c.body.line("}");
+        c.body.line("{} dtos = new {}();", dp.getDtoType(), dp.getDtoType());
+        c.body.line("for ({} o : os) {", dp.getSingleDomainType());
+        c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
+        c.body.line("}");
+        c.body.line("return dtos;");
       } else {
         // do a straight get
         toDto.body.line("_ o.{}(),", dp.getGetterMethodName());
@@ -288,7 +316,8 @@ public class GenerateDto {
 
   /** Adds {@code mapper.fromDto(domain, dto)}, the client is responsible for finding {@code domain}. */
   private void addFromDtoMethodToMapper() {
-    final GMethod fromDto = mapper.getMethod("fromDto", //
+    final GMethod fromDto = mapper.getMethod(
+      "fromDto", //
       arg(dto.getDomainType(), "o"),
       arg(dto.getDtoType(), "dto"));
     fromDto.body.line("DomainObjectContext c = DomainObjectContext.push();");
@@ -304,7 +333,8 @@ public class GenerateDto {
       if (dp.isExtension()) {
         fromDto.body.line("_ {}.{}(this, o, dto.{});", mapperFieldName(dto), extensionSetter(dp), dp.getName());
       } else if (dp.isValueType()) {
-        fromDto.body.line("_ o.{}(dto.{} == null ? null : {}.fromDto(dto.{}));", //
+        fromDto.body.line(
+          "_ o.{}(dto.{} == null ? null : {}.fromDto(dto.{}));", //
           dp.getSetterMethodName(),
           dp.getName(),
           mapperFieldName(dp.getValueTypeConfig()),
@@ -329,6 +359,20 @@ public class GenerateDto {
         c.body.line("_ return null;");
         c.body.line("}");
         c.body.line("{} os = new {}();", dp.getDomainType(), dp.getDomainType().replace("List", "ArrayList"));
+        c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType());
+        c.body.line("_ os.add(fromDto(dto));");
+        c.body.line("}");
+        c.body.line("return os;");
+      } else if (dp.isSetOfEntities()) {
+        final String helperMethod = dp.getName() + "For" + dto.getSimpleName();
+        fromDto.body.line("_ o.{}({}(dto.{}));", dp.getSetterMethodName(), helperMethod, dp.getName());
+        final GMethod c = mapper.getMethod(helperMethod, arg(dp.getDtoType(), "dtos"));
+        c.returnType(dp.getDomainType()).setPrivate();
+        // assumes Set->HashSet
+        c.body.line("if (dtos == null) {");
+        c.body.line("_ return null;");
+        c.body.line("}");
+        c.body.line("{} os = new {}();", dp.getDomainType(), dp.getDomainType().replace("Set", "HashSet"));
         c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType());
         c.body.line("_ os.add(fromDto(dto));");
         c.body.line("}");

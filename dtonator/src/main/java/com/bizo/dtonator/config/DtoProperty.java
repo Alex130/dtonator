@@ -69,12 +69,24 @@ public class DtoProperty {
     return dtoType.startsWith("java.util.ArrayList");
   }
 
+  public boolean isSet() {
+    return dtoType.startsWith("java.util.HashSet");
+  }
+
   public boolean isListOfEntities() {
     return DtoConfig.isListOfEntities(config, domainType);
   }
 
+  public boolean isSetOfEntities() {
+    return DtoConfig.isSetOfEntities(config, domainType);
+  }
+
   public boolean isListOfDtos() {
     return DtoConfig.isListOfDtos(config, dtoType);
+  }
+
+  public boolean isSetOfDtos() {
+    return DtoConfig.isSetOfDtos(config, dtoType);
   }
 
   public String getSingleDtoType() {

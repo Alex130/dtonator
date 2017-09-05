@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class TypeName {
 
   private static final List<String> javaLangTypes = list("String", "Integer", "Boolean", "Long", "Double");
-  private static final List<String> javaUtilTypes = list("ArrayList", "HashMap", "List", "Map");
+  private static final List<String> javaUtilTypes = list("ArrayList", "HashMap", "HashSet", "List", "Map", "Set");
   private static final Pattern types = Pattern.compile("[A-Za-z0-9\\.]+");
 
   // Resolves String -> java.lang.String, ArrayList<Integer> -> java.util.ArrayList<java.lang.Integer>

@@ -143,6 +143,52 @@ public class GenerateTessellModel {
 
           baseClass.addImports("org.tessell.util.PropertyUtils");
         }
+      } else if (p.isSetOfDtos()) {
+        final DtoConfig other = p.getSingleDto();
+        if (other != null && other.includeTessellModel()) {
+          final String modelFieldName = removeEnd(p.getName(), "s") + "Models";
+          final String dtoType = p.getSingleDtoType();
+          final String modelType = other.getSimpleName().replaceAll("Dto$", "") + "Model";
+          final String converterName = capitalize(p.getName()) + "Converter";
+
+          // setup the xxxModels field
+          baseClass.getField(modelFieldName).type("SetProperty<{}>", modelType);
+
+          // generate a method to lazily init id
+          final GMethod g = baseClass.getMethod(modelFieldName).returnType("SetProperty<{}>", modelType);
+          g.body.line("if (this.{} == null) {", modelFieldName);
+          g.body.line("_ this.{} = add({}.as(new {}()));", modelFieldName, p.getName(), converterName);
+          g.body.line("_ PropertyUtils.syncModelsToGroup(all, {});", modelFieldName);
+          g.body.line("}");
+          g.body.line("return this.{};", modelFieldName);
+
+          // add a converter back/forth
+          final GClass converter = baseClass.getInnerClass(converterName).setPrivate();
+          converter.implementsInterface("org.tessell.model.properties.SetProperty.ElementConverter<{}, {}>", dtoType, modelType);
+
+          // dto -> model
+          final GMethod to = converter.getMethod("to", arg(dtoType, "dto")).returnType(modelType).addAnnotation("@Override");
+          for (DtoConfig subclass : other.getSubClassDtos()) {
+            if (!subclass.isAbstract()) {
+              final String subclassModel = subclass.getSimpleName().replaceAll("Dto$", "") + "Model";
+              to.body.line("if (dto instanceof {}) { ", subclass.getSimpleName());
+              to.body.line("_  return new {}(({}) dto);", subclassModel, subclass.getSimpleName());
+              to.body.line("}");
+              baseClass.addImports(subclass.getDtoType());
+            }
+          }
+          if (other.isAbstract()) {
+            to.body.line("throw new IllegalArgumentException(dto + \" should be a subclass\");");
+          } else {
+            to.body.line("return new {}(dto);", modelType);
+          }
+
+          // model -> dto
+          final GMethod from = converter.getMethod("from", arg(modelType, "model")).returnType(dtoType).addAnnotation("@Override");
+          from.body.line("return model.getDto();");
+
+          baseClass.addImports("org.tessell.util.PropertyUtils");
+        }
       }
     }
 
@@ -161,6 +207,8 @@ public class GenerateTessellModel {
       return propertyPackage + ".EnumProperty<" + p.getDtoType() + ">";
     } else if (p.isList()) {
       return propertyPackage + ".ListProperty<" + p.getSingleDtoType() + ">";
+    } else if (p.isSet()) {
+      return propertyPackage + ".SetProperty<" + p.getSingleDtoType() + ">";
     } else {
       final String customType = config.getModelPropertyType(p.getDtoType());
       if (customType != null) {
