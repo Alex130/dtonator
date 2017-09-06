@@ -8,12 +8,17 @@ import static org.apache.commons.lang.StringUtils.defaultString;
 import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
+import java.beans.Transient;
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.lang.model.element.AnnotationValue;
 
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
@@ -141,6 +146,48 @@ public class DtoConfig {
     return TRUE.equals(map.get("beanMethods")) || root.includeBeanMethods();
   }
 
+  public List<AnnotationConfig> getExcludedAnnotations() {
+    final Object value = map.get("excludedAnnotations");
+    List<AnnotationConfig> rootValues = root.getExcludedAnnotations();
+    if (value == null) {
+      if (rootValues == null) {
+        return list();
+      } else {
+        return rootValues;
+      }
+    }
+    final List<AnnotationConfig> valueTypes = list();
+    for (final Map.Entry<Object, Object> e : YamlUtils.ensureMap(value).entrySet()) {
+      valueTypes.add(new AnnotationConfig(e));
+    }
+
+    //allow the DTO level settings for 'excludedAnnotations' to override
+    //the root level settings.
+    List<AnnotationConfig> combinedValues = list();
+    combinedValues.addAll(valueTypes);
+    if (rootValues != null) {
+
+      for (AnnotationConfig acRoot : rootValues) {
+        boolean matched = false;
+        for (AnnotationConfig acDTO : valueTypes) {
+
+          if (acDTO.domainType.equals(acRoot.domainType)) {
+            matched = true;
+            break;
+          }
+
+        }
+
+        //if there is not an existing setting from the DTO level,
+        //add the root level setting
+        if (!matched) {
+          combinedValues.add(acRoot);
+        }
+      }
+    }
+    return combinedValues;
+  }
+
   /** @return the domain type backing this DTO, or {@code null} if it's standalone. */
   public String getDomainType() {
     final String rawValue = (String) map.get("domain");
@@ -227,7 +274,14 @@ public class DtoConfig {
   }
 
   private void addChainedPropertiesFromDomainObject(final List<PropConfig> pcs) {
-    for (final Prop p : oracle.getProperties(getDomainType())) {
+    List<String> annotations = list();
+    for (AnnotationConfig av : getExcludedAnnotations()) {
+      if (av.exclude) {
+        annotations.add(av.domainType);
+      }
+    }
+
+    for (final Prop p : oracle.getProperties(getDomainType(), annotations)) {
       // if we found "getFoo()/setFoo()" via reflection, look for a "fooId" prop config,
       // that would tell us the user wants to get/set Foo as its id
       final PropConfig pc = findChainedPropConfig(pcs, p.name);
@@ -256,7 +310,14 @@ public class DtoConfig {
   }
 
   private void addPropertiesFromDomainObject(final List<PropConfig> pcs) {
-    for (final Prop p : oracle.getProperties(getDomainType())) {
+    List<String> annotations = list();
+    for (AnnotationConfig av : getExcludedAnnotations()) {
+      if (av.exclude) {
+        annotations.add(av.domainType);
+      }
+    }
+
+    for (final Prop p : oracle.getProperties(getDomainType(), annotations)) {
       final PropConfig pc = findPropConfig(pcs, p.name);
       if (pc != null) {
         // if we found a property in the oracle, we know this isn't an extension

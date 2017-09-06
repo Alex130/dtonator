@@ -1,5 +1,6 @@
 package com.bizo.dtonator.properties;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 
 /**
@@ -10,6 +11,8 @@ import java.util.List;
 public interface TypeOracle {
 
   List<Prop> getProperties(final String className);
+
+  List<Prop> getProperties(final String className, final List<String> excludedAnnotations);
 
   boolean isEnum(final String className);
 

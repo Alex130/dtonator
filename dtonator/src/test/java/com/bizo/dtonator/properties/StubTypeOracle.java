@@ -3,6 +3,7 @@ package com.bizo.dtonator.properties;
 import static joist.util.Copy.list;
 import static org.apache.commons.lang.StringUtils.capitalize;
 
+import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,11 @@ public class StubTypeOracle implements TypeOracle {
 
   @Override
   public List<Prop> getProperties(final String className) {
+    return getProperties(className, null);
+  }
+
+  @Override
+  public List<Prop> getProperties(String className, List<String> excludedAnnotations) {
     final List<Prop> properties = this.properties.get(className);
     if (properties == null) {
       return list();
@@ -52,4 +58,5 @@ public class StubTypeOracle implements TypeOracle {
   public void setEnumValues(final String className, final List<String> enumValues) {
     this.enumValues.put(className, enumValues);
   }
+
 }

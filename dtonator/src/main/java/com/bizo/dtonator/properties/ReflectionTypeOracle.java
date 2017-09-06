@@ -3,6 +3,8 @@ package com.bizo.dtonator.properties;
 import static joist.util.Copy.list;
 
 import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
 
@@ -12,10 +14,19 @@ public class ReflectionTypeOracle implements TypeOracle {
 
   @Override
   public List<Prop> getProperties(final String className) {
+
+    return getProperties(className, null);
+  }
+
+  @Override
+  public List<Prop> getProperties(String className, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
     for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
+        continue;
+      }
+      if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
         continue;
       }
       ps.add(new Prop( //
@@ -26,6 +37,29 @@ public class ReflectionTypeOracle implements TypeOracle {
         pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName()));
     }
     return ps;
+  }
+
+  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) {
+
+    if (annotations != null) {
+      for (String annotationName : annotations) {
+        try {
+          Field field = getClass(className).getDeclaredField(pd.getName());
+          Class<? extends Annotation> annotation = (Class<? extends Annotation>) getClass(annotationName);
+          if (field != null && field.isAnnotationPresent(annotation)) {
+            return true;
+          } else if (pd.getReadMethod() != null && pd.getReadMethod().isAnnotationPresent(annotation)) {
+            return true;
+          }
+
+        } catch (NoSuchFieldException | SecurityException e) {
+
+          return false;
+        }
+      }
+    }
+
+    return false;
   }
 
   @Override
@@ -63,4 +97,5 @@ public class ReflectionTypeOracle implements TypeOracle {
       throw new IllegalArgumentException(e);
     }
   }
+
 }
