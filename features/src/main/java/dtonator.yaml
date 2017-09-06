@@ -6,6 +6,8 @@ config:
   indent: two-space
   valueTypes:
     com.bizo.dtonator.domain.Dollars: com.bizo.dtonator.dtos.Dollars
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: true
 
 EmployerDto:
   domain: Employer
@@ -90,6 +92,17 @@ BlueHueAccountDto:
   domain: BlueHueAccount
   properties: zaz
   tessellModel: true
+  
+#testing excluding annotated fields
+EmployeeWithoutAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  
+EmployeeWithAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: false
 
 # enums
 EmployeeType:
