@@ -110,11 +110,13 @@ public class GenerateDto {
     }
     final GMethod cstr = gc.getConstructor(typeAndNames);
     final List<String> superParams = list();
+    final List<DtoProperty> localParams = dto.getProperties();
     for (DtoProperty dp : dto.getInheritedProperties()) {
       superParams.add(dp.getName());
+      localParams.remove(dp);
     }
     cstr.body.line("super({});", Join.commaSpace(superParams));
-    for (final DtoProperty dp : dto.getProperties()) {
+    for (final DtoProperty dp : localParams) {
       cstr.body.line("this.{} = {};", dp.getName(), dp.getName());
     }
   }
@@ -155,16 +157,18 @@ public class GenerateDto {
       }
       // now call the constructor
       m.body.line("_ return new {}(", c.getDtoType());
-      for (final DtoProperty dp : c.getAllProperties()) {
-        if (dp.isListOfDtos() || dp.isSetOfDtos()) {
-          m.body.line("_ _ {}Copy,", dp.getName());
-        } else if (dp.isDto()) {
-          m.body.line("_ _ {}.copyOf((({}) o).{}),", dp.getDtoType(), c.getDtoType(), dp.getName());
-        } else {
-          m.body.line("_ _ (({}) o).{},", c.getDtoType(), dp.getName());
+      if (c.getAllProperties() != null && !c.getAllProperties().isEmpty()) {
+        for (final DtoProperty dp : c.getAllProperties()) {
+          if (dp.isListOfDtos() || dp.isSetOfDtos()) {
+            m.body.line("_ _ {}Copy,", dp.getName());
+          } else if (dp.isDto()) {
+            m.body.line("_ _ {}.copyOf((({}) o).{}),", dp.getDtoType(), c.getDtoType(), dp.getName());
+          } else {
+            m.body.line("_ _ (({}) o).{},", c.getDtoType(), dp.getName());
+          }
         }
+        m.body.stripLastCharacterOnPreviousLine();
       }
-      m.body.stripLastCharacterOnPreviousLine();
       m.body.line("_ _ );");
       if (hasMoreThanOneType) {
         m.body.line("}");

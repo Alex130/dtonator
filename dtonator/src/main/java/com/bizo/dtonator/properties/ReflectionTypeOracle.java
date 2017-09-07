@@ -26,7 +26,7 @@ public class ReflectionTypeOracle implements TypeOracle {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
         continue;
       }
-      if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
+      if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
         continue;
       }
       ps.add(new Prop( //
@@ -39,7 +39,22 @@ public class ReflectionTypeOracle implements TypeOracle {
     return ps;
   }
 
-  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) {
+  private boolean includeAnnotatedField(String className, PropertyDescriptor pd, List<String> excludedAnnotations) {
+
+    try {
+      if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
+        return false;
+      }
+
+    } catch (NoSuchFieldException e) {
+
+      return false;
+    }
+    return true;
+
+  }
+
+  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) throws NoSuchFieldException {
 
     if (annotations != null) {
       for (String annotationName : annotations) {
@@ -52,7 +67,7 @@ public class ReflectionTypeOracle implements TypeOracle {
             return true;
           }
 
-        } catch (NoSuchFieldException | SecurityException e) {
+        } catch (SecurityException e) {
 
           return false;
         }
