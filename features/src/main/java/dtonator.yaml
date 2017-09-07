@@ -71,14 +71,14 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: id, name
+  properties: '*'
   tessellModel: true
   forceMapperMethods: name
 
 RedAccountDto:
   extends: AccountDto
   domain: RedAccount
-  properties: foo
+  properties: '*'
   tessellModel: true
 
 BlueAccountDto:
