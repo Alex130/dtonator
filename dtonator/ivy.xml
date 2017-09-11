@@ -15,6 +15,7 @@
 
   <dependencies defaultconfmapping="sources->sources();%->default" defaultconf="compile;sources">
     <dependency org="commons-lang" name="commons-lang" rev="2.6"/>
+    <dependency org="org.apache.commons" name="commons-lang3" rev="3.6"/>
     <dependency org="commons-beanutils" name="commons-beanutils" rev="1.8.2"/>
     <dependency org="org.yaml" name="snakeyaml" rev="1.8"/>
     <dependency org="joist" name="joist-util" rev="1.9.1" />

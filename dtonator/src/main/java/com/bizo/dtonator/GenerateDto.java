@@ -94,7 +94,7 @@ public class GenerateDto {
     if (dto.shouldAddPublicConstructor()) {
       // keep public
       for (final DtoProperty dp : dto.getProperties()) {
-        if (dp.getDtoType().startsWith("java.util.ArrayList")) {
+        if (dp.getDtoType().startsWith("java.util.ArrayList") || dp.getDtoType().startsWith("java.util.HashSet")) {
           cstr0.body.line("this.{} = new {}();", dp.getName(), dp.getDtoType());
         }
       }

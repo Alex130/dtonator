@@ -6,6 +6,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.TypeVariable;
 import java.util.List;
 
 import org.apache.commons.beanutils.PropertyUtils;
@@ -52,6 +53,19 @@ public class ReflectionTypeOracle implements TypeOracle {
     }
     return true;
 
+  }
+
+  @Override
+  public TypeVariable<?>[] getTypeParametersValues(String className) {
+
+    TypeVariable<?>[] params = null;
+    if (className != null) {
+      Class<?> clazz = getClass(className);
+      if (clazz != null) {
+        params = clazz.getTypeParameters();
+      }
+    }
+    return params;
   }
 
   public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) throws NoSuchFieldException {

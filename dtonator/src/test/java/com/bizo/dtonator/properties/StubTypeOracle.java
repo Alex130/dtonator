@@ -4,6 +4,7 @@ import static joist.util.Copy.list;
 import static org.apache.commons.lang.StringUtils.capitalize;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.TypeVariable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ public class StubTypeOracle implements TypeOracle {
 
   private final Map<String, List<Prop>> properties = new HashMap<String, List<Prop>>();
   private final Map<String, List<String>> enumValues = new HashMap<String, List<String>>();
+  private final Map<String, TypeVariable<?>[]> typeParametersValues = new HashMap<String, TypeVariable<?>[]>();
 
   @Override
   public List<Prop> getProperties(final String className) {
@@ -57,6 +59,16 @@ public class StubTypeOracle implements TypeOracle {
 
   public void setEnumValues(final String className, final List<String> enumValues) {
     this.enumValues.put(className, enumValues);
+  }
+
+  @Override
+  public TypeVariable<?>[] getTypeParametersValues(String className) {
+
+    return typeParametersValues.get(className);
+  }
+
+  public void setTypeParametersValues(final String className, final TypeVariable<?>[] typeParametersValues) {
+    this.typeParametersValues.put(className, typeParametersValues);
   }
 
 }

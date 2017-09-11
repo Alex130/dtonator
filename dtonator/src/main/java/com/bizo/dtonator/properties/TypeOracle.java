@@ -1,6 +1,6 @@
 package com.bizo.dtonator.properties;
 
-import java.lang.annotation.Annotation;
+import java.lang.reflect.TypeVariable;
 import java.util.List;
 
 /**
@@ -19,5 +19,7 @@ public interface TypeOracle {
   boolean isAbstract(final String className);
 
   List<String> getEnumValues(final String className);
+
+  TypeVariable<?>[] getTypeParametersValues(String className);
 
 }

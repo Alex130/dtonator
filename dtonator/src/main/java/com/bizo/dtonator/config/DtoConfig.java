@@ -8,8 +8,7 @@ import static org.apache.commons.lang.StringUtils.defaultString;
 import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
-import java.beans.Transient;
-import java.lang.annotation.Annotation;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,7 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.lang.model.element.AnnotationValue;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.TypeUtils;
 
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
@@ -31,11 +31,35 @@ public class DtoConfig {
   private final Map<String, Object> map;
   private List<DtoProperty> properties;
 
+  private TypeVariable<?>[] typeParams;
+
   public DtoConfig(final TypeOracle oracle, final RootConfig root, final String simpleName, final Object map) {
     this.oracle = oracle;
     this.root = root;
     this.simpleName = simpleName;
     this.map = (map == null) ? new HashMap<String, Object>() : YamlUtils.<String, Object> ensureMap(map);
+
+    this.typeParams = oracle.getTypeParametersValues(getDomainType());
+  }
+
+  public String getDtoTypeWithGenerics() {
+
+    StringBuilder dtoType = new StringBuilder(getDtoType());
+    List<String> genericStrings = new ArrayList<String>();
+    if (typeParams != null && typeParams.length > 0) {
+
+      dtoType.append("<");
+      for (int i = 0; i < typeParams.length; i++) {
+        TypeVariable<?> typeVar = typeParams[i];
+        genericStrings.add(TypeUtils.toString(typeVar));
+
+      }
+      dtoType.append(StringUtils.join(genericStrings, ","));
+      dtoType.append(">");
+    }
+
+    return dtoType.toString();
+
   }
 
   public List<DtoProperty> getProperties() {
