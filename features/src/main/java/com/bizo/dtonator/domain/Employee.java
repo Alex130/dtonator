@@ -1,6 +1,7 @@
 package com.bizo.dtonator.domain;
 
 import java.util.List;
+import java.util.Set;
 
 public class Employee {
 
@@ -11,6 +12,7 @@ public class Employee {
   private Dollars salary;
   private List<EmployeeAccount> accounts;
   private Employer employer;
+  private Set<Role> roles;
 
   public Employee() {
   }
@@ -78,6 +80,14 @@ public class Employee {
 
   public void setAccounts(final List<EmployeeAccount> accounts) {
     this.accounts = accounts;
+  }
+
+  public Set<Role> getRoles() {
+    return roles;
+  }
+
+  public void setRoles(Set<Role> roles) {
+    this.roles = roles;
   }
 
 }

@@ -34,6 +34,31 @@ EmployeeAccountDto:
   domain: EmployeeAccount
   properties: '*'
 
+"EmployeeTypedAccountDto":
+  domain: EmployeeTypedAccount
+  properties: '*'
+  
+EmployeeRedAccountDto:
+  domain: EmployeeRedAccount
+  properties: '*'
+
+EmployeeOtherRedAccountDto:
+  extends: "EmployeeTypedAccountDto"
+  domain: EmployeeRedAccount
+  properties: account T, *
+
+ManagerWithAccountDto:
+  domain: ManagerWithAccount
+  properties: '*'  
+  
+ManagerWithEmployertDto:
+  domain: ManagerWithEmployer
+  properties: '*'
+  
+ManagerWithEmployerAndAccountDto:
+  domain: ManagerWithEmployerAndAccount
+  properties: '*'
+
 # testing a list of entities that uses an explicit child dto
 EmployeeWithSimpleAccountsDto:
   domain: Employee
