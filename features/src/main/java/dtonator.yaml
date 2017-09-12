@@ -27,6 +27,14 @@ EmployeeWithAccountsDto:
   domain: Employee
   properties: id, name, accounts
 
+RoleDto:
+  domain: Role
+  properties: '*'
+  
+EmployeeWithRolesDto:
+  domain: Employee
+  properties: roles, *
+
 # need the EmployeeAccountDto
 EmployeeAccountDto:
   domain: EmployeeAccount
