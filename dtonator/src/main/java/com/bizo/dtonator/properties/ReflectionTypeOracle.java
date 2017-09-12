@@ -3,7 +3,10 @@ package com.bizo.dtonator.properties;
 import static joist.util.Copy.list;
 
 import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.TypeVariable;
 import java.util.List;
 
 import org.apache.commons.beanutils.PropertyUtils;

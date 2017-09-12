@@ -285,6 +285,9 @@ public class DtoConfig {
         } else if (isListOfDtos(root, pc.type)) {
           // the type was java.util.ArrayList<FooDto>, resolve the dto package
           dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        } else if (isSetOfDtos(root, pc.type)) {
+          // the type was java.util.HashSet<FooDto>, resolve the dto package
+          dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
         } else {
           dtoType = pc.type;
           extension = !dtoType.equals(domainType);
@@ -300,6 +303,13 @@ public class DtoConfig {
           // only map lists of entities if it was included in properties
           if (pc != null) {
             dtoType = "java.util.ArrayList<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
+          } else {
+            dtoType = null;
+          }
+        } else if (isSetOfEntities(root, domainType)) {
+          // only map lists of entities if it was included in properties
+          if (pc != null) {
+            dtoType = "java.util.HashSet<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
@@ -360,6 +370,11 @@ public class DtoConfig {
         dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
         // loosen the type to List, otherwise the user still has to provide the dtos themselves
         domainType = "java.util.List<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+      } else if (isSetOfDtos(root, pc.type)) {
+        // the type was java.util.HashSet<FooDto>, resolve the dto package
+        dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        // loosen the type to Set, otherwise the user still has to provide the dtos themselves
+        domainType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
       } else if (root.getValueTypeForDtoType(pc.type) != null) {
         dtoType = root.getValueTypeForDtoType(pc.type).dtoType; // fully qualified
         domainType = root.getValueTypeForDtoType(pc.type).domainType;
@@ -540,6 +555,10 @@ public class DtoConfig {
     return domainType.startsWith("java.util.List<" + config.getDomainPackage());
   }
 
+  static boolean isSetOfEntities(final RootConfig config, final String domainType) {
+    return domainType.startsWith("java.util.Set<" + config.getDomainPackage());
+  }
+
   static boolean isEntity(final RootConfig config, final String domainType) {
     return domainType.startsWith(config.getDomainPackage()) && config.getValueTypeForDomainType(domainType) == null;
   }
@@ -547,6 +566,14 @@ public class DtoConfig {
   static boolean isListOfDtos(final RootConfig config, final String pcType) {
     // assume the user wanted List to be ArrayList
     if ((pcType.startsWith("java.util.ArrayList<") || pcType.startsWith("java.util.List<")) && pcType.endsWith(">")) {
+      return config.getDto(simple(listType(pcType))) != null;
+    }
+    return false;
+  }
+
+  static boolean isSetOfDtos(final RootConfig config, final String pcType) {
+    // assume the user wanted List to be ArrayList
+    if ((pcType.startsWith("java.util.HashSet<") || pcType.startsWith("java.util.Set<")) && pcType.endsWith(">")) {
       return config.getDto(simple(listType(pcType))) != null;
     }
     return false;
