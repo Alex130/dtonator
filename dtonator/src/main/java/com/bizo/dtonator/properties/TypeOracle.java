@@ -11,6 +11,8 @@ public interface TypeOracle {
 
   List<Prop> getProperties(final String className);
 
+  List<Prop> getProperties(final String className, final List<String> excludedAnnotations);
+
   boolean isEnum(final String className);
 
   boolean isAbstract(final String className);

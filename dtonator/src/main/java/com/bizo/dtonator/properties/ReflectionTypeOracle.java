@@ -15,10 +15,19 @@ public class ReflectionTypeOracle implements TypeOracle {
 
   @Override
   public List<Prop> getProperties(final String className) {
+
+    return getProperties(className, null);
+  }
+
+  @Override
+  public List<Prop> getProperties(String className, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
     for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
+        continue;
+      }
+      if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
         continue;
       }
       ps.add(new Prop( //
@@ -31,6 +40,44 @@ public class ReflectionTypeOracle implements TypeOracle {
         pd.getWriteMethod() == null ? null : pd.getWriteMethod().getDeclaringClass().getName()));
     }
     return ps;
+  }
+
+  private boolean includeAnnotatedField(String className, PropertyDescriptor pd, List<String> excludedAnnotations) {
+
+    try {
+      if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
+        return false;
+      }
+
+    } catch (NoSuchFieldException e) {
+
+      return false;
+    }
+    return true;
+
+  }
+
+  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) throws NoSuchFieldException {
+
+    if (annotations != null) {
+      for (String annotationName : annotations) {
+        try {
+          Field field = getClass(className).getDeclaredField(pd.getName());
+          Class<? extends Annotation> annotation = (Class<? extends Annotation>) getClass(annotationName);
+          if (field != null && field.isAnnotationPresent(annotation)) {
+            return true;
+          } else if (pd.getReadMethod() != null && pd.getReadMethod().isAnnotationPresent(annotation)) {
+            return true;
+          }
+
+        } catch (SecurityException e) {
+
+          return false;
+        }
+      }
+    }
+
+    return false;
   }
 
   @Override

@@ -14,6 +14,11 @@ public class StubTypeOracle implements TypeOracle {
 
   @Override
   public List<Prop> getProperties(final String className) {
+    return getProperties(className, null);
+  }
+
+  @Override
+  public List<Prop> getProperties(String className, List<String> excludedAnnotations) {
     final List<Prop> properties = this.properties.get(className);
     if (properties == null) {
       return list();

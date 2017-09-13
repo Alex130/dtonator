@@ -87,6 +87,18 @@ public class RootConfig {
     return TRUE.equals(getConfig().get("beanMethods"));
   }
 
+  public List<AnnotationConfig> getExcludedAnnotations() {
+    final Object value = getConfig().get("excludedAnnotations");
+    if (value == null) {
+      return list();
+    }
+    final List<AnnotationConfig> valueTypes = list();
+    for (final Map.Entry<Object, Object> e : YamlUtils.ensureMap(value).entrySet()) {
+      valueTypes.add(new AnnotationConfig(e));
+    }
+    return valueTypes;
+  }
+
   public Collection<DtoConfig> getDtos() {
     if (dtos == null) {
       dtos = list();
