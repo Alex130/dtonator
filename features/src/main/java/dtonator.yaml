@@ -6,6 +6,8 @@ config:
   indent: two-space
   valueTypes:
     com.bizo.dtonator.domain.Dollars: com.bizo.dtonator.dtos.Dollars
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: true
 
 EmployerDto:
   domain: Employer
@@ -38,6 +40,31 @@ EmployeeWithRolesDto:
 # need the EmployeeAccountDto
 EmployeeAccountDto:
   domain: EmployeeAccount
+  properties: '*'
+
+"EmployeeTypedAccountDto":
+  domain: EmployeeTypedAccount
+  properties: '*'
+  
+EmployeeRedAccountDto:
+  domain: EmployeeRedAccount
+  properties: '*'
+
+EmployeeOtherRedAccountDto:
+  extends: "EmployeeTypedAccountDto"
+  domain: EmployeeRedAccount
+  properties: account T, *
+
+ManagerWithAccountDto:
+  domain: ManagerWithAccount
+  properties: '*'  
+  
+ManagerWithEmployertDto:
+  domain: ManagerWithEmployer
+  properties: '*'
+  
+ManagerWithEmployerAndAccountDto:
+  domain: ManagerWithEmployerAndAccount
   properties: '*'
 
 # testing a list of entities that uses an explicit child dto
@@ -77,14 +104,14 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: id, name
+  properties: '*'
   tessellModel: true
   forceMapperMethods: name
 
 RedAccountDto:
   extends: AccountDto
   domain: RedAccount
-  properties: foo
+  properties: '*'
   tessellModel: true
 
 BlueAccountDto:
@@ -98,6 +125,17 @@ BlueHueAccountDto:
   domain: BlueHueAccount
   properties: zaz
   tessellModel: true
+  
+#testing excluding annotated fields
+EmployeeWithoutAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  
+EmployeeWithAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: false
 
 #test inheritance with all properties included
 GreenAccountDto:
