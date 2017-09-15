@@ -128,6 +128,11 @@ GreenHueAccountDto:
 YellowAccountDto:
   domain: RedAccount
   properties: '*'
+  
+# testing generic properties
+RedManagerDto:
+  domain: RedManager
+  properties: account RedAccountDto, *
 
 # enums
 EmployeeType:
