@@ -5,9 +5,10 @@ import static joist.util.Copy.list;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.TypeVariable;
 import java.util.List;
+import org.apache.commons.lang3.reflect.*;
 
 import org.apache.commons.beanutils.PropertyUtils;
 
@@ -44,35 +45,34 @@ public class ReflectionTypeOracle implements TypeOracle {
 
   private boolean includeAnnotatedField(String className, PropertyDescriptor pd, List<String> excludedAnnotations) {
 
-    try {
-      if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
-        return false;
-      }
-
-    } catch (NoSuchFieldException e) {
-
+    if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
       return false;
     }
+
     return true;
 
   }
 
-  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) throws NoSuchFieldException {
+  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) {
 
     if (annotations != null) {
       for (String annotationName : annotations) {
-        try {
-          Field field = getClass(className).getDeclaredField(pd.getName());
-          Class<? extends Annotation> annotation = (Class<? extends Annotation>) getClass(annotationName);
-          if (field != null && field.isAnnotationPresent(annotation)) {
-            return true;
-          } else if (pd.getReadMethod() != null && pd.getReadMethod().isAnnotationPresent(annotation)) {
+
+        Class<?> clazz = getClass(className);
+        Class<? extends Annotation> annotation = (Class<? extends Annotation>) getClass(annotationName);
+
+        List<Field> annotatedFields = FieldUtils.getFieldsListWithAnnotation(clazz, annotation);
+        for (Field f : annotatedFields) {
+          if (f.getName().equals(pd.getName())) {
             return true;
           }
+        }
 
-        } catch (SecurityException e) {
-
-          return false;
+        List<Method> annotatedMethods = MethodUtils.getMethodsListWithAnnotation(clazz, annotation, true, true);
+        for (Method m : annotatedMethods) {
+          if (m.getName().equals(pd.getReadMethod().getName())) {
+            return true;
+          }
         }
       }
     }
