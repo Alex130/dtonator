@@ -15,17 +15,21 @@ import org.apache.commons.beanutils.PropertyUtils;
 public class ReflectionTypeOracle implements TypeOracle {
 
   @Override
-  public List<Prop> getProperties(final String className) {
+  public List<Prop> getProperties(final String className, boolean excludeInherited) {
 
-    return getProperties(className, null);
+    return getProperties(className, excludeInherited, null);
   }
 
   @Override
-  public List<Prop> getProperties(String className, List<String> excludedAnnotations) {
+  public List<Prop> getProperties(String className, boolean excludeInherited, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
     for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
+        continue;
+      }
+      // if this DTO has a parent class we want to exclude inherited properties
+      if (excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())) {
         continue;
       }
       if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
@@ -36,9 +40,7 @@ public class ReflectionTypeOracle implements TypeOracle {
         pd.getReadMethod() == null ? pd.getPropertyType().getName() : pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", ""),
         pd.getWriteMethod() == null,
         pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
-        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
-        pd.getReadMethod() == null ? null : pd.getReadMethod().getDeclaringClass().getName(),
-        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getDeclaringClass().getName()));
+        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName()));
     }
     return ps;
   }

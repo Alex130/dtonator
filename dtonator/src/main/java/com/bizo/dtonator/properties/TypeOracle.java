@@ -9,9 +9,9 @@ import java.util.List;
  */
 public interface TypeOracle {
 
-  List<Prop> getProperties(final String className);
+  List<Prop> getProperties(final String className, boolean excludeInherited);
 
-  List<Prop> getProperties(final String className, final List<String> excludedAnnotations);
+  List<Prop> getProperties(final String className, boolean excludeInherited, final List<String> excludedAnnotations);
 
   boolean isEnum(final String className);
 
