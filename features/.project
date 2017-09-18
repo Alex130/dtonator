@@ -3,6 +3,7 @@
 	<name>dtonator-features</name>
 	<comment></comment>
 	<projects>
+		<project>dtonator</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
