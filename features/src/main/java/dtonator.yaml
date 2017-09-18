@@ -133,6 +133,15 @@ YellowAccountDto:
 RedManagerDto:
   domain: RedManager
   properties: account RedAccountDto, *
+  
+AbstractManagerDto:
+  domain: AbstractManager
+  properties: account, *
+
+YellowManagerDto:
+  domain: RedManager
+  extends: "AbstractManagerDto"
+  properties: '*'
 
 # enums
 EmployeeType:
