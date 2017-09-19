@@ -4,6 +4,10 @@ public class RedManager extends AbstractManager<RedAccount> {
 
   private String location;
 
+  public RedManager() {
+    super();
+  }
+
   public RedManager(Long id, String name, String location) {
     super(id, name);
     this.location = location;

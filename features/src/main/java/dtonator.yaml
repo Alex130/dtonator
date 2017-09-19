@@ -79,7 +79,7 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: '*'
+  properties: role RoleDto, *
   tessellModel: true
   forceMapperMethods: name
 
@@ -137,11 +137,20 @@ RedManagerDto:
 AbstractManagerDto:
   domain: AbstractManager
   properties: account, *
+  
+OtherManagerDto:
+  domain: AbstractManager
+  properties: account V extends AccountDto, *
 
 YellowManagerDto:
   domain: RedManager
   extends: "AbstractManagerDto"
   properties: '*'
+
+OtherYellowManagerDto:
+  domain: RedManager
+  extends: "OtherManagerDto<RedAccountDto>"
+  properties: account RedAccountDto, *
 
 # enums
 EmployeeType:
