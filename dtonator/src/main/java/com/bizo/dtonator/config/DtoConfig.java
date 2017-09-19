@@ -4,6 +4,7 @@ import static com.bizo.dtonator.Names.listType;
 import static com.bizo.dtonator.Names.simple;
 import static java.lang.Boolean.TRUE;
 import static joist.util.Copy.list;
+import static joist.util.Copy.map;
 import static org.apache.commons.lang.StringUtils.defaultString;
 import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
@@ -16,6 +17,8 @@ import org.apache.commons.lang3.reflect.TypeUtils;
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
 
+import joist.util.FluentMap;
+
 public class DtoConfig {
 
   private final TypeOracle oracle;
@@ -23,6 +26,7 @@ public class DtoConfig {
   private final String simpleName;
   private final Map<String, Object> map;
   private List<DtoProperty> properties;
+  private List<String> genericTypeParameters;
 
   public DtoConfig(final TypeOracle oracle, final RootConfig root, final String simpleName, final Object map) {
     this.oracle = oracle;
@@ -68,6 +72,17 @@ public class DtoConfig {
 
   public List<DtoProperty> getAllProperties() {
     return list(getInheritedProperties()).with(getProperties());
+  }
+
+  public Map<String, DtoProperty> getAllPropertiesMap() {
+    FluentMap<String, DtoProperty> map = new FluentMap<>();
+    for (DtoProperty p : getInheritedProperties()) {
+      map.put(p.getName(), p);
+    }
+    for (DtoProperty p : getProperties()) {
+      map.put(p.getName(), p);
+    }
+    return map;
   }
 
   public String getSimpleName() {
@@ -325,11 +340,6 @@ public class DtoConfig {
         continue;
       }
 
-      // if this DTO has a parent class we want to exclude inherited properties
-      //      if (isChildClass() && !getDomainType().equals(p.getGetterMethodNameDeclaredIn())) {
-      //        continue;
-      //      }
-
       // domainType has to be p.type, it came from reflection (right?)
       final String domainType = p.type;
 
@@ -350,6 +360,14 @@ public class DtoConfig {
         } else {
           dtoType = pc.type;
           extension = !dtoType.equals(domainType);
+        }
+
+        if (!pc.type.equals(pc.fullType)) {
+          //the type was a generic
+          if (genericTypeParameters == null) {
+            genericTypeParameters = new ArrayList<String>();
+          }
+          genericTypeParameters.add(pc.fullType);
         }
         // TODO pc.type might ValueType (client-side), need to fully quality it?
       } else {
@@ -485,6 +503,7 @@ public class DtoConfig {
     final String name;
     final String domainName;
     final String type;
+    final String fullType;
     final boolean isExclusion;
     final boolean isReadOnly;
     boolean mapped = false;
@@ -497,18 +516,28 @@ public class DtoConfig {
       // foo(zaz) Bar
       String _name;
       String _domainName = null;
+
       if (value.contains(" ")) {
         final String[] parts = splitIntoNameAndType(value);
         _name = parts[0];
-        type = TypeName.javaLangOrUtilPrefixIfNecessary(parts[1]);
+        fullType = TypeName.javaLangOrUtilPrefixIfNecessary(parts[1]);
+        String[] typeParts = parts[1].split(" ", 2);
+        if (typeParts.length > 0) {
+          type = TypeName.javaLangOrUtilPrefixIfNecessary(typeParts[0]);
+        } else {
+          type = fullType;
+        }
+
         isExclusion = false;
       } else if (value.startsWith("-")) {
         _name = value.substring(1);
         type = null;
+        fullType = null;
         isExclusion = true;
       } else {
         _name = value;
         type = null;
+        fullType = null;
         isExclusion = false;
       }
       if (_name.startsWith("~")) {
@@ -535,7 +564,7 @@ public class DtoConfig {
     }
 
     private static String[] splitIntoNameAndType(final String value) {
-      final String[] parts = value.split(" ");
+      final String[] parts = value.split(" ", 2);
       if (parts.length != 2) {
         throw new IllegalArgumentException("Value '<name> <type>': " + value);
       }
@@ -645,5 +674,9 @@ public class DtoConfig {
       }
     }
     return false;
+  }
+
+  public List<String> getGenericTypeParameters() {
+    return genericTypeParameters;
   }
 }

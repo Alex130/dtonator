@@ -11,6 +11,8 @@ import static org.apache.commons.lang.StringUtils.uncapitalize;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import joist.sourcegen.Argument;
 import joist.sourcegen.GClass;
 import joist.sourcegen.GDirectory;
@@ -42,7 +44,11 @@ public class GenerateDto {
     this.mapper = mapper;
     this.takenToDtoOverloads = takenToDtoOverloads;
     this.dto = dto;
-    gc = out.getClass(dto.getDtoType());
+    String dtoType = dto.getDtoType();
+    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
+      dtoType = dtoType + "<" + StringUtils.join(dto.getGenericTypeParameters(), ",") + ">";
+    }
+    gc = out.getClass(dtoType);
   }
 
   public void generate() {
@@ -122,6 +128,9 @@ public class GenerateDto {
 
   private void addCopyOfMethod() {
     final GMethod m = gc.getMethod("copyOf", Argument.arg(dto.getDtoType(), "o")).returnType(dto.getDtoType()).setStatic();
+    if (dto.getGenericTypeParameters() != null) {
+      m.typeParameters(StringUtils.join(dto.getGenericTypeParameters(), ","));
+    }
     // if there are subclasses, we'll have to probe which type of subclass to create
     List<DtoConfig> allTypes = Copy.list(dto.getSubClassDtos()).with(dto);
     boolean hasMoreThanOneType = allTypes.size() > 1;
@@ -157,7 +166,7 @@ public class GenerateDto {
       }
       // now call the constructor
       m.body.line("_ return new {}(", c.getDtoType());
-      for (final DtoProperty dp : c.getAllProperties()) {
+      for (final DtoProperty dp : c.getAllPropertiesMap().values()) {
         if (dp.isListOfDtos() || dp.isSetOfDtos()) {
           m.body.line("_ _ {}Copy,", dp.getName());
         } else if (dp.isDto()) {
