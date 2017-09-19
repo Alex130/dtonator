@@ -11,6 +11,8 @@ import static org.apache.commons.lang.StringUtils.substringBetween;
 
 import java.util.*;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 
@@ -36,6 +38,7 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getProperties() {
+
     if (properties == null) {
       properties = list();
       final List<PropConfig> pcs = getPropertiesConfig();
@@ -44,15 +47,30 @@ public class DtoConfig {
         addChainedPropertiesFromDomainObject(pcs);
       }
       addLeftOverExtensionProperties(pcs);
+
       sortProperties(pcs, properties);
     }
     return properties;
+
+  }
+
+  public List<DtoProperty> getClassProperties() {
+    Predicate<? super DtoProperty> p = new Predicate<DtoProperty>() {
+
+      @Override
+      public boolean evaluate(DtoProperty t) {
+
+        return !t.isInherited();
+      }
+    };
+
+    return (List<DtoProperty>) CollectionUtils.select(getProperties(), p);
   }
 
   public List<DtoProperty> getInheritedProperties() {
     final List<DtoProperty> p = list();
     for (final DtoConfig base : getBaseDtos()) {
-      p.addAll(base.getProperties());
+      p.addAll(base.getClassProperties());
     }
     return p;
   }
@@ -71,7 +89,7 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getAllProperties() {
-    return list(getInheritedProperties()).with(getProperties());
+    return list(getInheritedProperties()).with(getClassProperties());
   }
 
   public Map<String, DtoProperty> getAllPropertiesMap() {
@@ -125,6 +143,13 @@ public class DtoConfig {
 
   /** @return this DTOs base class simple name, or {@code null} */
   public String getBaseDtoSimpleName() {
+    String name = getBaseDtoSimpleNameWithGenerics();
+
+    return StringUtils.removePattern(name, "<.*>");
+
+  }
+
+  public String getBaseDtoSimpleNameWithGenerics() {
     return (String) map.get("extends");
   }
 
@@ -223,7 +248,7 @@ public class DtoConfig {
       throw new IllegalArgumentException("Expected a string for equality key");
     } else if ("*".equals(value)) {
       final List<String> names = list();
-      for (final DtoProperty p : getProperties()) {
+      for (final DtoProperty p : getClassProperties()) {
         names.add(p.getName());
       }
       return names;
@@ -272,7 +297,7 @@ public class DtoConfig {
   }
 
   public boolean hasExtensionProperties() {
-    for (final DtoProperty p : getProperties()) {
+    for (final DtoProperty p : getClassProperties()) {
       if (p.isExtension()) {
         return true;
       }
@@ -316,7 +341,8 @@ public class DtoConfig {
           "java.lang.Long",
           p.type,
           p.getGetterMethodName(),
-          p.getSetterNameMethod()));
+          p.getSetterNameMethod(),
+          p.inherited));
       }
     }
   }
@@ -407,6 +433,7 @@ public class DtoConfig {
       }
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
+
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -417,7 +444,9 @@ public class DtoConfig {
         dtoType,
         domainType,
         extension ? null : p.getGetterMethodName(),
-        extension ? null : p.getSetterNameMethod()));
+        extension ? null : p.getSetterNameMethod(),
+        p.inherited));
+
     }
   }
 
@@ -427,6 +456,7 @@ public class DtoConfig {
       if (pc.mapped) {
         continue;
       }
+
       if (pc.type == null) {
         throw new IllegalStateException("type is required for extension properties: " + pc.name);
       }
@@ -463,6 +493,7 @@ public class DtoConfig {
         dtoType = pc.type;
         domainType = dtoType;
       }
+
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -473,8 +504,10 @@ public class DtoConfig {
         dtoType,
         domainType,
         null,
-        null));
+        null,
+        false));
     }
+
   }
 
   /** @return the `properties: a, b` as parsed {@link PropConfig}, skipping the `*` character. */

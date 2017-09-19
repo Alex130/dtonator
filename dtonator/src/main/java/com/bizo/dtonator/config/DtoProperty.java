@@ -21,6 +21,7 @@ public class DtoProperty {
   private final String dtoType;
   private final String getterMethodName;
   private final String setterNameMethod;
+  private final boolean inherited;
 
   public DtoProperty(
     final TypeOracle oracle,
@@ -32,7 +33,8 @@ public class DtoProperty {
     final String dtoType,
     final String domainType,
     final String getterMethodName,
-    final String setterNameMethod) {
+    final String setterNameMethod,
+    final boolean inherited) {
     this.oracle = oracle;
     this.config = config;
     this.dto = dto;
@@ -43,6 +45,7 @@ public class DtoProperty {
     this.domainType = domainType;
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
+    this.inherited = inherited;
   }
 
   public DtoConfig getDto() {
@@ -157,6 +160,10 @@ public class DtoProperty {
 
   public boolean isChainedId() {
     return isChainedId;
+  }
+
+  public boolean isInherited() {
+    return inherited;
   }
 
 }

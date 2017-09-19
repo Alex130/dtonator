@@ -66,7 +66,7 @@ public class GenerateTessellModel {
     final GMethod cstr = baseClass.getConstructor(arg(dto.getDtoType(), "dto")).setProtected();
     cstr.body.line("super(dto);");
 
-    for (final DtoProperty p : dto.getProperties()) {
+    for (final DtoProperty p : dto.getClassProperties()) {
       // the public final field for this XxxProperty
       final GField f = baseClass.getField(p.getName()).setFinal().setPublic().type(getPropertyType(p));
 

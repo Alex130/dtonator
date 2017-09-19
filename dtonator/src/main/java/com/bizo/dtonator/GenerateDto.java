@@ -69,8 +69,8 @@ public class GenerateDto {
   }
 
   private void addBaseClassIfNeeded() {
-    if (dto.getBaseDtoSimpleName() != null) {
-      gc.baseClassName(dto.getBaseDtoSimpleName());
+    if (dto.getBaseDtoSimpleNameWithGenerics() != null) {
+      gc.baseClassName(dto.getBaseDtoSimpleNameWithGenerics());
     }
   }
 
@@ -88,7 +88,7 @@ public class GenerateDto {
   }
 
   private void addDtoFields() {
-    for (final DtoProperty dp : dto.getProperties()) {
+    for (final DtoProperty dp : dto.getClassProperties()) {
       gc.getField(dp.getName()).setPublic().type(dp.getDtoType());
       if (dto.includeBeanMethods()) {
         gc.addGetterSetter(dp.getDtoType(), dp.getName());
@@ -100,7 +100,7 @@ public class GenerateDto {
     final GMethod cstr0 = gc.getConstructor();
     if (dto.shouldAddPublicConstructor()) {
       // keep public
-      for (final DtoProperty dp : dto.getProperties()) {
+      for (final DtoProperty dp : dto.getClassProperties()) {
         if (dp.getDtoType().startsWith("java.util.ArrayList") || dp.getDtoType().startsWith("java.util.HashSet")) {
           cstr0.body.line("this.{} = new {}();", dp.getName(), dp.getDtoType());
         }
@@ -112,7 +112,7 @@ public class GenerateDto {
 
   private void addFullConstructor() {
     final List<Argument> typeAndNames = list();
-    for (final DtoProperty dp : dto.getAllProperties()) {
+    for (final DtoProperty dp : dto.getAllPropertiesMap().values()) {
       typeAndNames.add(arg(dp.getDtoType(), dp.getName()));
     }
     final GMethod cstr = gc.getConstructor(typeAndNames);
@@ -121,7 +121,7 @@ public class GenerateDto {
       superParams.add(dp.getName());
     }
     cstr.body.line("super({});", Join.commaSpace(superParams));
-    for (final DtoProperty dp : dto.getProperties()) {
+    for (final DtoProperty dp : dto.getClassProperties()) {
       cstr.body.line("this.{} = {};", dp.getName(), dp.getName());
     }
   }
@@ -143,7 +143,7 @@ public class GenerateDto {
       }
 
       // first make copies of children if needed      
-      for (final DtoProperty dp : c.getAllProperties()) {
+      for (final DtoProperty dp : c.getAllPropertiesMap().values()) {
         if (dp.isListOfDtos()) {
           m.body.line("_ ArrayList<{}> {}Copy = new ArrayList<{}>();", dp.getSingleDto(), dp.getName(), dp.getSingleDto());
           m.body.line("_ for ({} e : (({}) o).{}) {", dp.getSingleDto(), c.getDtoType(), dp.getName());
@@ -204,7 +204,7 @@ public class GenerateDto {
     if (dto.getEquality() != null) {
       fieldNames.addAll(dto.getEquality());
     } else {
-      for (DtoProperty dp : dto.getAllProperties()) {
+      for (DtoProperty dp : dto.getAllPropertiesMap().values()) {
         fieldNames.add(dp.getName());
       }
     }
@@ -216,7 +216,7 @@ public class GenerateDto {
       return;
     }
     final GClass mb = out.getClass(mapperInterface(config, dto)).setInterface();
-    for (final DtoProperty p : dto.getProperties()) {
+    for (final DtoProperty p : dto.getClassProperties()) {
       if (!p.isExtension()) {
         continue;
       }
@@ -259,7 +259,7 @@ public class GenerateDto {
       return;
     }
     toDto.body.line("return new {}(", dto.getDtoType());
-    for (final DtoProperty dp : dto.getAllProperties()) {
+    for (final DtoProperty dp : dto.getAllPropertiesMap().values()) {
       if (dp.isExtension()) {
         // delegate to the user's mapper method for this property
         toDto.body.line("_ {}.{}(this, o),", mapperFieldName(dp.getDto()), extensionGetter(dp));
@@ -333,7 +333,7 @@ public class GenerateDto {
       arg(dto.getDtoType(), "dto"));
     fromDto.body.line("DomainObjectContext c = DomainObjectContext.push();");
     fromDto.body.line("try {");
-    for (final DtoProperty dp : dto.getProperties()) {
+    for (final DtoProperty dp : dto.getClassProperties()) {
       if (dp.isReadOnly()) {
         continue;
       }

@@ -29,9 +29,9 @@ public class ReflectionTypeOracle implements TypeOracle {
         continue;
       }
       // if this DTO has a parent class we want to exclude inherited properties
-      if (excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())) {
-        continue;
-      }
+      //      if (excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())) {
+      //        continue;
+      //      }
       if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
         continue;
       }
@@ -40,7 +40,8 @@ public class ReflectionTypeOracle implements TypeOracle {
         pd.getReadMethod() == null ? pd.getPropertyType().getName() : pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", ""),
         pd.getWriteMethod() == null,
         pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
-        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName()));
+        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
+        excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())));
     }
     return ps;
   }
