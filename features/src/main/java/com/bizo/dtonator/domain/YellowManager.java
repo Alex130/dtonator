@@ -1,14 +1,14 @@
 package com.bizo.dtonator.domain;
 
-public class RedManager extends AbstractManager<RedAccount> {
+public class YellowManager extends AbstractManager<YellowAccount> {
 
   private String location;
 
-  public RedManager() {
+  public YellowManager() {
     super();
   }
 
-  public RedManager(Long id, String name, String location) {
+  public YellowManager(Long id, String name, String location) {
     super(id, name);
     this.location = location;
   }

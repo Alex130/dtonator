@@ -5,8 +5,6 @@ public abstract class Account {
   private Long id;
   private String name;
 
-  private Role role;
-
   public Account() {
   }
 
@@ -29,14 +27,6 @@ public abstract class Account {
 
   public void setName(String name) {
     this.name = name;
-  }
-
-  public Role getRole() {
-    return role;
-  }
-
-  public void setRole(Role role) {
-    this.role = role;
   }
 
 }

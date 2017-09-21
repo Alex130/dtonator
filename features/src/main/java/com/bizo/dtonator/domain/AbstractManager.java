@@ -8,6 +8,8 @@ public abstract class AbstractManager<T extends Account> {
 
   private T account;
 
+  private int employees;
+
   public AbstractManager() {
   }
 
@@ -38,6 +40,14 @@ public abstract class AbstractManager<T extends Account> {
 
   public void setAccount(T account) {
     this.account = account;
+  }
+
+  public int getEmployees() {
+    return employees;
+  }
+
+  public void setEmployees(int employees) {
+    this.employees = employees;
   }
 
 }

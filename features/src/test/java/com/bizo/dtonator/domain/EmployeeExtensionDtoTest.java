@@ -15,7 +15,7 @@ public class EmployeeExtensionDtoTest {
 
   private final StubEmployeeExtensionMapper employeeExtMapper = new StubEmployeeExtensionMapper();
   private final StubAccountMapper accountMapper = new StubAccountMapper("1");
-  private final Mapper mapper = new Mapper(null, null, accountMapper, employeeExtMapper, null, new DefaultDollarsMapper());
+  private final Mapper mapper = new Mapper(null, null, accountMapper, null, employeeExtMapper, null, new DefaultDollarsMapper());
 
   @Test
   public void testToDto() {

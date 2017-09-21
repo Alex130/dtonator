@@ -79,13 +79,19 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: role RoleDto, *
+  properties: '*'
   tessellModel: true
   forceMapperMethods: name
 
 RedAccountDto:
   extends: AccountDto
   domain: RedAccount
+  properties: foo
+  tessellModel: true
+  
+YellowAccountDto:
+  extends: AccountDto
+  domain: YellowAccount
   properties: '*'
   tessellModel: true
 
@@ -125,14 +131,10 @@ GreenHueAccountDto:
   properties: '*'
   tessellModel: true
   
-YellowAccountDto:
-  domain: RedAccount
-  properties: '*'
-  
 # testing generic properties
-RedManagerDto:
-  domain: RedManager
-  properties: account RedAccountDto, *
+#RedManagerDto:
+#  domain: RedManager
+#  properties: account RedAccountDto, *
   
 AbstractManagerDto:
   domain: AbstractManager
@@ -140,17 +142,17 @@ AbstractManagerDto:
   
 OtherManagerDto:
   domain: AbstractManager
-  properties: account V extends AccountDto, *
+  properties: account V AccountDto, *
 
-YellowManagerDto:
-  domain: RedManager
-  extends: "AbstractManagerDto"
-  properties: '*'
+GreenManagerDto:
+  domain: GreenManager
+  extends: "AbstractManagerDto<GreenAccountDto>"
+  properties: account, *
 
 OtherYellowManagerDto:
-  domain: RedManager
-  extends: "OtherManagerDto<RedAccountDto>"
-  properties: account RedAccountDto, *
+  domain: YellowManager
+  extends: "OtherManagerDto<YellowAccountDto>"
+  properties: account YellowAccountDto, *
 
 # enums
 EmployeeType:
