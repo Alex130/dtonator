@@ -7,7 +7,12 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.reflect.*;
 
 import org.apache.commons.beanutils.PropertyUtils;
@@ -28,20 +33,40 @@ public class ReflectionTypeOracle implements TypeOracle {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
         continue;
       }
-      // if this DTO has a parent class we want to exclude inherited properties
-      //      if (excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())) {
-      //        continue;
-      //      }
+
       if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
         continue;
       }
+
+      String type = pd.getReadMethod() == null ? pd.getPropertyType().getName()
+        : pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+      Map<String, String> genericMap = new HashMap<String, String>();
+
+      if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
+        Map<TypeVariable<?>, Type> map = TypeUtils.getTypeArguments(getClass(className), pd.getReadMethod().getDeclaringClass());
+
+        if (map != null && !map.isEmpty()) {
+
+          Type t = map.get(map.keySet().iterator().next());
+          if (t != null) {
+            type = t.getTypeName().replaceAll("^class ", "");
+          }
+
+        } else {
+
+          genericMap
+            .put(pd.getReadMethod().getReturnType().toString().replaceAll("^class ", ""), pd.getReadMethod().getGenericReturnType().toString());
+
+        }
+      }
       ps.add(new Prop( //
         pd.getName(),
-        pd.getReadMethod() == null ? pd.getPropertyType().getName() : pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", ""),
+        type,
         pd.getWriteMethod() == null,
         pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
         pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
-        excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName())));
+        excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
+        genericMap));
     }
     return ps;
   }

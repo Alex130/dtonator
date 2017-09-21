@@ -1,5 +1,7 @@
 package com.bizo.dtonator.properties;
 
+import java.util.Map;
+
 /** A simple DTO to abstract discovering properties via reflection. */
 public class Prop {
 
@@ -9,8 +11,16 @@ public class Prop {
   private final String getterMethodName;
   private final String setterNameMethod;
   public final boolean inherited;
+  private final Map<String, String> genericTypes;
 
-  public Prop(String name, String type, boolean readOnly, String getterMethodName, String setterNameMethod, boolean inherited) {
+  public Prop(
+    String name,
+    String type,
+    boolean readOnly,
+    String getterMethodName,
+    String setterNameMethod,
+    boolean inherited,
+    Map<String, String> genericTypes) {
     super();
     this.name = name;
     this.type = type;
@@ -18,6 +28,7 @@ public class Prop {
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
     this.inherited = inherited;
+    this.genericTypes = genericTypes;
 
   }
 
@@ -27,6 +38,10 @@ public class Prop {
 
   public String getSetterNameMethod() {
     return setterNameMethod;
+  }
+
+  public Map<String, String> getGenericTypes() {
+    return genericTypes;
   }
 
   @Override

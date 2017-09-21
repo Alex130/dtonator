@@ -8,10 +8,11 @@ import static joist.util.Copy.list;
 import static org.apache.commons.lang.StringUtils.capitalize;
 import static org.apache.commons.lang.StringUtils.uncapitalize;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
+import com.bizo.dtonator.config.DtoConfig;
+import com.bizo.dtonator.config.DtoProperty;
+import com.bizo.dtonator.config.RootConfig;
 
 import joist.sourcegen.Argument;
 import joist.sourcegen.GClass;
@@ -19,10 +20,6 @@ import joist.sourcegen.GDirectory;
 import joist.sourcegen.GMethod;
 import joist.util.Copy;
 import joist.util.Join;
-
-import com.bizo.dtonator.config.DtoConfig;
-import com.bizo.dtonator.config.DtoProperty;
-import com.bizo.dtonator.config.RootConfig;
 
 public class GenerateDto {
 
@@ -46,7 +43,7 @@ public class GenerateDto {
     this.dto = dto;
     String dtoType = dto.getDtoType();
     if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
-      dtoType = dtoType + "<" + StringUtils.join(dto.getGenericTypeParameters(), ",") + ">";
+      dtoType = dtoType + "<" + dto.getGenericTypeParametersString() + ">";
     }
     gc = out.getClass(dtoType);
   }
@@ -129,7 +126,7 @@ public class GenerateDto {
   private void addCopyOfMethod() {
     final GMethod m = gc.getMethod("copyOf", Argument.arg(dto.getDtoType(), "o")).returnType(dto.getDtoType()).setStatic();
     if (dto.getGenericTypeParameters() != null) {
-      m.typeParameters(StringUtils.join(dto.getGenericTypeParameters(), ","));
+      m.typeParameters(dto.getGenericTypeParametersString());
     }
     // if there are subclasses, we'll have to probe which type of subclass to create
     List<DtoConfig> allTypes = Copy.list(dto.getSubClassDtos()).with(dto);
@@ -215,7 +212,19 @@ public class GenerateDto {
     if (!dto.requiresMapperType()) {
       return;
     }
-    final GClass mb = out.getClass(mapperInterface(config, dto)).setInterface();
+
+    String dtoType = mapperInterface(config, dto);
+    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
+      dtoType = dtoType + "<" + dto.getGenericTypeParametersString() + ">";
+    }
+    final GClass mb = out.getClass(dtoType).setInterface();
+
+    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
+      for (String type : dto.getGenericTypeParameters().values()) {
+        mb.stripAndImportPackageIfPossible(type);
+      }
+    }
+
     for (final DtoProperty p : dto.getClassProperties()) {
       if (!p.isExtension()) {
         continue;

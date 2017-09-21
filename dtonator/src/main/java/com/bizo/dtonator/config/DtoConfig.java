@@ -4,17 +4,20 @@ import static com.bizo.dtonator.Names.listType;
 import static com.bizo.dtonator.Names.simple;
 import static java.lang.Boolean.TRUE;
 import static joist.util.Copy.list;
-import static joist.util.Copy.map;
 import static org.apache.commons.lang.StringUtils.defaultString;
 import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.reflect.TypeUtils;
 
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
@@ -28,7 +31,7 @@ public class DtoConfig {
   private final String simpleName;
   private final Map<String, Object> map;
   private List<DtoProperty> properties;
-  private List<String> genericTypeParameters;
+  private Map<String, String> genericTypeParameters;
 
   public DtoConfig(final TypeOracle oracle, final RootConfig root, final String simpleName, final Object map) {
     this.oracle = oracle;
@@ -348,6 +351,7 @@ public class DtoConfig {
   }
 
   private void addPropertiesFromDomainObject(final List<PropConfig> pcs) {
+
     List<String> annotations = list();
     for (AnnotationConfig av : getExcludedAnnotations()) {
       if (av.exclude) {
@@ -367,7 +371,7 @@ public class DtoConfig {
       }
 
       // domainType has to be p.type, it came from reflection (right?)
-      final String domainType = p.type;
+      String domainType = p.type;
 
       boolean extension = false;
 
@@ -388,12 +392,12 @@ public class DtoConfig {
           extension = !dtoType.equals(domainType);
         }
 
-        if (!pc.type.equals(pc.fullType)) {
+        if (!pc.type.equals(pc.fullType) && pc.fullTypeParts() != null && pc.fullTypeParts().length >= 2) {
           //the type was a generic
           if (genericTypeParameters == null) {
-            genericTypeParameters = new ArrayList<String>();
+            genericTypeParameters = new HashMap<String, String>();
           }
-          genericTypeParameters.add(pc.fullType);
+          genericTypeParameters.put(pc.fullTypeParts()[0], root.getDtoPackage() + "." + pc.fullTypeParts()[1]);
         }
         // TODO pc.type might ValueType (client-side), need to fully quality it?
       } else {
@@ -423,8 +427,32 @@ public class DtoConfig {
           } else {
             dtoType = null;
           }
+        } else if (p.getGenericTypes() != null && !p.getGenericTypes().isEmpty()) {
+
+          String genericClass = p.getGenericTypes().keySet().iterator().next();
+          String genericType = p.getGenericTypes().get(genericClass);
+          System.out.println(p.type + " " + genericClass + "=" + genericType);
+
+          if (genericType == null) {
+            //No type variable indicates that this class has a concrete type that we want to use
+            dtoType = guessDtoTypeForDomainType(root, genericClass).getDtoType();
+          } else {
+
+            if (genericTypeParameters == null) {
+              genericTypeParameters = new HashMap<String, String>();
+            }
+
+            String genericDtoType = guessDtoTypeForDomainType(root, genericClass).getDtoType();
+            genericTypeParameters.put(genericType, genericDtoType);
+
+            dtoType = domainType;
+            domainType = genericClass;
+
+          }
+
         } else {
           dtoType = domainType;
+
         }
       }
 
@@ -591,6 +619,14 @@ public class DtoConfig {
       mapped = true;
     }
 
+    public String[] fullTypeParts() {
+      if (fullType != null) {
+        return fullType.split(" ");
+      } else {
+        return null;
+      }
+    }
+
     @Override
     public String toString() {
       return (isExclusion ? "-" : "") + name + (type == null ? "" : " " + type);
@@ -709,7 +745,29 @@ public class DtoConfig {
     return false;
   }
 
-  public List<String> getGenericTypeParameters() {
+  public Map<String, String> getGenericTypeParameters() {
     return genericTypeParameters;
+  }
+
+  public String getGenericTypeParametersString() {
+    String typeString = "";
+
+    if (getGenericTypeParameters() != null) {
+      Iterator<String> itr = getGenericTypeParameters().keySet().iterator();
+
+      while (itr.hasNext()) {
+
+        String key = itr.next();
+        typeString += key;
+        String classString = getGenericTypeParameters().get(key);
+        if (classString != null) {
+          typeString += " extends " + classString;
+        }
+        if (itr.hasNext()) {
+          typeString += ",";
+        }
+      }
+    }
+    return typeString;
   }
 }
