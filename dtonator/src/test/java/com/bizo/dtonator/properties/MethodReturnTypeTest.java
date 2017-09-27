@@ -3,47 +3,49 @@ package com.bizo.dtonator.properties;
 import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections4.MultiValuedMap;
 import org.junit.Test;
 
 public class MethodReturnTypeTest {
-  List mRaw() {
+  public List mRaw() {
     return null;
   }
 
-  List<String> mTypeString() {
+  public List<String> mTypeString() {
     return null;
   }
 
-  List<?> mWildcard() {
+  public List<?> mWildcard() {
     return null;
   }
 
-  List<? extends Number> mBoundedWildcard() {
+  public List<? extends Number> mBoundedWildcard() {
     return null;
   }
 
-  <T extends List<String>> List<T> mTypeLiteral() {
+  public <T extends Set<String>> List<T> mTypeLiteral() {
     return null;
   }
 
-  <T extends List<String>, V extends Set<Integer>> Map<T, V> mTypeLiteralMultiple() {
+  public <T extends List<String>, V extends Set<Integer>> Map<T, V> mTypeLiteralMultiple() {
     return null;
   }
 
-  <T extends List<String>, V extends Map<Integer, T>> Map<T, V> mMapTypeLiteralMultiple() {
+  //  public <T extends List<String>, V extends Map<Integer, T>> Map<T, V> mMapTypeLiteralMultiple() {
+  //    return null;
+  //  }
+
+  public <Q extends List & Set> Q multiType() {
     return null;
   }
 
-  <Q extends List & Set> Q multiType() {
-    return null;
-  }
-
-  <T extends Set> T[] mGenericArray() {
+  public <T extends Set> T[] mGenericArray() {
     return null;
   }
 
@@ -52,10 +54,10 @@ public class MethodReturnTypeTest {
     for (Method method : MethodReturnTypeTest.class.getDeclaredMethods()) {
       Type type = method.getGenericReturnType();
       String typeToString = method.getName() + " - " + GenericParser.typeToString(type);
-      System.out.println(typeToString);
+      //      System.out.println(typeToString);
       String mapTypeToString = method.getName() + " - " + GenericParser.typeToMapString(type);
-      System.out.println(mapTypeToString);
-      System.out.println("");
+      //      System.out.println(mapTypeToString);
+      //      System.out.println("");
 
       assertEquals(typeToString, mapTypeToString);
     }
@@ -63,12 +65,15 @@ public class MethodReturnTypeTest {
 
   public static void main(String[] args) {
     for (Method method : MethodReturnTypeTest.class.getDeclaredMethods()) {
-      Type type = method.getGenericReturnType();
-      System.out.println(method.getName() + " - " + GenericParser.typeToString(type));
-      List<GenericParts> parts = GenericParser.typeToMap(type);
-      //      System.out.println(parts);
-      System.out.println(method.getName() + " - " + GenericParser.typeToMapString(type));
-      System.out.println("");
+      if (Modifier.isPublic(method.getModifiers())) {
+        Type type = method.getGenericReturnType();
+        System.out.println(method.getName() + " - " + GenericParser.typeToString(type));
+
+        System.out.println(method.getName() + " - " + GenericParser.typeToMapString(type));
+        MultiValuedMap<String, GenericParts> typeMap = GenericParser.typeToMap(type);
+
+        System.out.println("");
+      }
     }
   }
 }

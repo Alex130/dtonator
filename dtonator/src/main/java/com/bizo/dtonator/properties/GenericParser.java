@@ -6,12 +6,18 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections4.MapIterator;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 
 public class GenericParser {
@@ -90,72 +96,62 @@ public class GenericParser {
   }
 
   public static String typeToMapString(Type type) {
-    List<GenericParts> parts = new ArrayList<>();
+    MultiValuedMap<String, GenericParts> partsMap = new ArrayListValuedHashMap<>();
 
-    typeToMap(parts, 0, type, new HashSet<Type>());
+    typeToMap(partsMap, type);
 
     StringBuilder sb = new StringBuilder();
 
-    for (int i = 0; i < parts.size(); i++) {
-      GenericParts gp = parts.get(i);
-      if (i > 0) {
-        sb.append(", ");
-      }
-      typeToMapString(gp, sb);
-    }
+    typeToMapString(partsMap, sb);
 
     return sb.toString();
   }
 
-  private static void typeToMapString(GenericParts gp, StringBuilder sb) {
-    sb.append(gp.getParamTypeString());
-    if (!gp.getParamTypeString().isEmpty()) {
-      sb.append("<");
-    }
+  public static void typeToMapString(MultiValuedMap<String, ?> partsMap, StringBuilder sb) {
 
-    if (gp.wildType != null) {
-      sb.append("?");
-    } else if (gp.typeVar != null) {
-      sb.append(gp.getTypeVarString());
-    } else if (gp.arrayType != null) {
-      sb.append(gp.getArrayTypeString()).append("[]");
-    }
+    Iterator<String> itr = partsMap.keySet().iterator();
+    while (itr.hasNext()) {
+      String key = itr.next();
 
-    if (gp.operator != null) {
-      sb.append(" " + gp.operator + " ");
-    }
+      List<GenericParts> parts = (List<GenericParts>) partsMap.get(key);
 
-    if (gp.linkedTypes != null) {
-      for (int j = 0; j < gp.linkedTypes.size(); j++) {
-        if (j > 0) {
-          sb.append(" & ");
-        }
-        if (gp.linkedTypes.get(j) instanceof GenericParts) {
-          typeToMapString((GenericParts) gp.linkedTypes.get(j), sb);
+      for (int i = 0; i < parts.size(); i++) {
+
+        if (i > 0) {
+          sb.append(", ");
+          sb.append(parts.get(i).getFormattedString(""));
         } else {
-          sb.append(gp.linkedTypes.get(j));
+          sb.append(parts.get(i).getFormattedString());
         }
+
+      }
+      if (itr.hasNext()) {
+        sb.append(", ");
+
       }
     }
 
-    if (!gp.getParamTypeString().isEmpty()) {
-      sb.append(">");
-    }
-
   }
 
-  public static List<GenericParts> typeToMap(Type type) {
-    List<GenericParts> parts = new ArrayList<>();
+  public static MultiValuedMap<String, GenericParts> typeToMap(Type type) {
+    MultiValuedMap<String, GenericParts> parts = new ArrayListValuedHashMap<>();
 
-    typeToMap(parts, 0, type, new HashSet<Type>());
+    typeToMap(parts, type);
     return parts;
   }
 
-  private static void typeToMap(List<GenericParts> parts, int index, Type type, Set<Type> visited) {
+  private static void typeToMap(MultiValuedMap<String, GenericParts> parts, Type type) {
+    typeToMap(parts, "default", 0, type, new HashSet<Type>());
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  private static void typeToMap(MultiValuedMap<String, GenericParts> parts, String key, int index, Type type, Set<Type> visited) {
 
     if (parts == null) {
-      parts = new ArrayList<GenericParts>();
+
+      parts = new ArrayListValuedHashMap<String, GenericParts>();
       index = 0;
+      key = "default";
     }
 
     if (type instanceof ParameterizedType) {
@@ -166,13 +162,13 @@ public class GenericParser {
 
         GenericParts gp = new GenericParts();
         gp.paramType = parameterizedType;
-        parts.add(gp);
-        typeToMap(parts, i, typeArg, visited);
+        parts.put(gp.getParamTypeString(), gp);
+        typeToMap(parts, gp.getParamTypeString(), i, typeArg, visited);
 
       }
     } else if (type instanceof WildcardType) {
 
-      GenericParts gp = getGpFromParts(parts, index);
+      GenericParts gp = getGpFromParts(parts, key, index);
 
       WildcardType wildcardType = (WildcardType) type;
       gp.wildType = wildcardType;
@@ -190,10 +186,10 @@ public class GenericParser {
         gp.operator = "extends";
         bound = wildcardType.getUpperBounds()[0];
       }
-      typeToMap(parts, index, bound, visited);
+      typeToMap(parts, key, index, bound, visited);
     } else if (type instanceof TypeVariable<?>) {
 
-      GenericParts gp = getGpFromParts(parts, index);
+      GenericParts gp = getGpFromParts(parts, key, index);
 
       TypeVariable<?> typeVariable = (TypeVariable<?>) type;
       gp.typeVar = typeVariable;
@@ -203,35 +199,34 @@ public class GenericParser {
       if (!visited.contains(type)) {
         visited.add(type);
         gp.operator = "extends";
-        List<GenericParts> typeParts = new ArrayList<GenericParts>();
+        MultiValuedMap<String, GenericParts> typeParts = new ArrayListValuedHashMap<String, GenericParts>();
         for (int i = 0; i < typeVariable.getBounds().length; i++) {
           Type bound = typeVariable.getBounds()[i];
-          typeToMap(typeParts, i, bound, visited);
+          typeToMap(typeParts, key, i, bound, visited);
         }
         gp.linkedTypes = typeParts;
         visited.remove(type);
       }
     } else if (type instanceof GenericArrayType) {
-      GenericParts gp = getGpFromParts(parts, index);
+      GenericParts gp = getGpFromParts(parts, key, index);
 
       GenericArrayType genericArrayType = (GenericArrayType) type;
       typeToMap(genericArrayType.getGenericComponentType());
       gp.arrayType = genericArrayType;
 
     } else if (type instanceof Class) {
-      GenericParts gp = getGpFromParts(parts, index);
+      GenericParts gp = getGpFromParts(parts, key, index);
 
       Class<?> typeClass = (Class<?>) type;
-      if (gp.linkedTypes == null) {
-        gp.linkedTypes = new ArrayList<>();
-      }
-      gp.linkedTypes.add(typeClass.getName());
+      gp.boundClass = typeClass;
     } else {
       throw new IllegalArgumentException("Unsupported type: " + type);
     }
   }
 
-  private static GenericParts getGpFromParts(List<GenericParts> parts, int index) {
+  @SuppressWarnings("rawtypes")
+  private static GenericParts<?> getGpFromParts(MultiValuedMap<String, GenericParts> partsMap, String key, int index) {
+    List<GenericParts> parts = (List<GenericParts>) partsMap.get(key);
     GenericParts gp = null;
     if (index < parts.size()) {
       gp = parts.get(index);
