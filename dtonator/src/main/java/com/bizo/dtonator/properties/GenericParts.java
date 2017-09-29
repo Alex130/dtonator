@@ -4,13 +4,14 @@ import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.lang3.StringUtils;
 
-public class GenericParts<T extends Object> {
+public class GenericParts implements IGenericParts {
 
   public ParameterizedType paramType;
   public TypeVariable typeVar;
@@ -18,6 +19,7 @@ public class GenericParts<T extends Object> {
   public GenericArrayType arrayType;
   public String operator;
   public Class boundClass;
+  public MultiValuedMap<String, GenericParts> paramTypeArgs;
   public MultiValuedMap<String, GenericParts> linkedTypes;
 
   public GenericParts() {
@@ -59,9 +61,23 @@ public class GenericParts<T extends Object> {
     String linkedStr = "";
     if (linkedTypes != null) {
 
-      linkedStr = StringUtils.joinWith(",", linkedTypes.values());
+      for (String key : linkedTypes.keySet()) {
+        linkedStr += "{" + key + "=" + StringUtils.joinWith(",", linkedTypes.get(key)) + "}";
+      }
     }
     return linkedStr;
+  }
+
+  @Override
+  public String getParamTypeArgsString() {
+    String paramTypeArgsStr = "";
+    if (paramTypeArgs != null) {
+
+      for (String key : paramTypeArgs.keySet()) {
+        paramTypeArgsStr += "{" + key + "=" + StringUtils.joinWith(",", paramTypeArgs.get(key)) + "}";
+      }
+    }
+    return paramTypeArgsStr;
   }
 
   public String getBoundClassString() {
@@ -72,11 +88,20 @@ public class GenericParts<T extends Object> {
     return boundString;
   }
 
+  @Override
+  public MultiValuedMap<String, GenericParts> getLinkedTypes() {
+    return linkedTypes;
+  }
+
+  @Override
+  public MultiValuedMap<String, GenericParts> getParamTypeArgs() {
+    return paramTypeArgs;
+  }
+
   public String getFormattedString() {
     return getFormattedString(paramType != null ? getParamTypeString() : null);
   }
 
-  @SuppressWarnings("rawtypes")
   public String getFormattedString(String paramString) {
     StringBuilder sb = new StringBuilder();
     if (paramString != null) {
@@ -100,16 +125,70 @@ public class GenericParts<T extends Object> {
     }
 
     if (linkedTypes != null) {
-      for (String key : linkedTypes.keySet()) {
+      Iterator<String> itr = linkedTypes.keySet().iterator();
+
+      while (itr.hasNext()) {
+
+        String key = itr.next();
+
         List<GenericParts> parts = (List<GenericParts>) linkedTypes.get(key);
         if (parts != null) {
-          for (int i = 0; i < parts.size(); i++) {
-            if (i > 0) {
-              sb.append(" & ");
+          ListIterator<GenericParts> partsItr = parts.listIterator();
+
+          while (partsItr.hasNext()) {
+
+            sb.append(partsItr.next().getFormattedString());
+            if (partsItr.hasNext()) {
+
+              if (paramString != null) {
+
+                sb.append(", ");
+              } else {
+                sb.append(" & ");
+              }
+
             }
-            sb.append(parts.get(i).getFormattedString());
+
           }
         }
+        if (itr.hasNext()) {
+          sb.append(" & ");
+        }
+
+      }
+    }
+
+    if (paramTypeArgs != null) {
+      Iterator<String> itr = paramTypeArgs.keySet().iterator();
+
+      while (itr.hasNext()) {
+
+        String key = itr.next();
+
+        List<GenericParts> parts = (List<GenericParts>) paramTypeArgs.get(key);
+        if (parts != null) {
+          ListIterator<GenericParts> partsItr = parts.listIterator();
+
+          while (partsItr.hasNext()) {
+
+            sb.append(partsItr.next().getFormattedString());
+            if (partsItr.hasNext()) {
+
+              if (paramString != null) {
+
+                sb.append(", ");
+              } else {
+                sb.append(" & ");
+              }
+
+            }
+
+          }
+        }
+        if (itr.hasNext()) {
+          sb.append(" & ");
+        }
+
       }
     }
 
@@ -129,10 +208,12 @@ public class GenericParts<T extends Object> {
       + getTypeVarString()
       + ", getArrayTypeString()="
       + getArrayTypeString()
-      + ", getLinkedTypeString()="
-      + getLinkedTypeString()
       + ", getBoundClassString()="
       + getBoundClassString()
+      + ", getParamTypeArgsString()="
+      + getParamTypeArgsString()
+      + ", getLinkedTypeString()="
+      + getLinkedTypeString()
       + "]";
   }
 

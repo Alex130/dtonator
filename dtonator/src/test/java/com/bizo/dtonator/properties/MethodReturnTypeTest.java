@@ -1,6 +1,8 @@
 package com.bizo.dtonator.properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -12,12 +14,20 @@ import java.util.Set;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.junit.Test;
 
-public class MethodReturnTypeTest {
+public class MethodReturnTypeTest<U extends Number> {
   public List mRaw() {
     return null;
   }
 
   public List<String> mTypeString() {
+    return null;
+  }
+
+  public U mClassTypeNumber() {
+    return null;
+  }
+
+  public List<U> mListClassTypeNumber() {
     return null;
   }
 
@@ -50,14 +60,28 @@ public class MethodReturnTypeTest {
   }
 
   @Test
+  public void testTypeDtoMapToString() {
+    for (Method method : MethodReturnTypeTest.class.getDeclaredMethods()) {
+      Type type = method.getGenericReturnType();
+      String typeToString = method.getName() + " - " + GenericParser.typeToString(type);
+      System.out.println(typeToString);
+      String mapTypeToString = method.getName() + " - " + GenericParser.typeToMapStringDto(type);
+      System.out.println(mapTypeToString);
+      System.out.println("");
+
+      assertEquals(typeToString, mapTypeToString);
+    }
+  }
+
+  @Test
   public void testTypeMapToString() {
     for (Method method : MethodReturnTypeTest.class.getDeclaredMethods()) {
       Type type = method.getGenericReturnType();
       String typeToString = method.getName() + " - " + GenericParser.typeToString(type);
-      //      System.out.println(typeToString);
+      System.out.println(typeToString);
       String mapTypeToString = method.getName() + " - " + GenericParser.typeToMapString(type);
-      //      System.out.println(mapTypeToString);
-      //      System.out.println("");
+      System.out.println(mapTypeToString);
+      System.out.println("");
 
       assertEquals(typeToString, mapTypeToString);
     }
@@ -70,8 +94,8 @@ public class MethodReturnTypeTest {
         System.out.println(method.getName() + " - " + GenericParser.typeToString(type));
 
         System.out.println(method.getName() + " - " + GenericParser.typeToMapString(type));
-        MultiValuedMap<String, GenericParts> typeMap = GenericParser.typeToMap(type);
-
+        String mapTypeToString = method.getName() + " - " + GenericParser.typeToMapStringDto(type);
+        System.out.println(mapTypeToString);
         System.out.println("");
       }
     }
