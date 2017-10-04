@@ -142,16 +142,16 @@ AbstractManagerDto:
   
 OtherManagerDto:
   domain: AbstractManager
-  properties: account V AccountDto, *
+  properties: account T extends AccountDto, *
 
 GreenManagerDto:
   domain: GreenManager
-  extends: "AbstractManagerDto<GreenAccountDto>"
-  properties: account, *
+  extends: "AbstractManagerDto<GreenAccountDto,GreenAccountDto>"
+  properties: account, managedAccounts, *
 
 OtherYellowManagerDto:
   domain: YellowManager
-  extends: "OtherManagerDto<YellowAccountDto>"
+  extends: "OtherManagerDto<YellowAccountDto,YellowAccountDto>"
   properties: account YellowAccountDto, *
 
 # enums

@@ -1,6 +1,6 @@
 package com.bizo.dtonator.domain;
 
-public class YellowManager extends AbstractManager<YellowAccount> {
+public class YellowManager extends AbstractManager<YellowAccount, YellowAccount> {
 
   private String location;
 
@@ -20,5 +20,10 @@ public class YellowManager extends AbstractManager<YellowAccount> {
   public void setLocation(String location) {
     this.location = location;
   }
+
+  //  @Override
+  //  public YellowAccount getAccount() {
+  //    return super.getAccount();
+  //  }
 
 }

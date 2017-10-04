@@ -1,6 +1,8 @@
 package com.bizo.dtonator.domain;
 
-public class GreenManager extends AbstractManager<GreenAccount> {
+import java.util.List;
+
+public class GreenManager extends AbstractManager<GreenAccount, GreenAccount> {
 
   private String location;
 
@@ -21,8 +23,12 @@ public class GreenManager extends AbstractManager<GreenAccount> {
     this.location = location;
   }
 
-  //  @Override
-  //  public RedAccount getAccount() {
-  //    return super.getAccount();
-  //  }
+  public List<GreenAccount> getManagedAccounts() {
+    return managedAccounts;
+  }
+
+  public void setManagedAccounts(List<GreenAccount> managedAccounts) {
+    this.managedAccounts = managedAccounts;
+  }
+
 }

@@ -1,6 +1,8 @@
 package com.bizo.dtonator.domain;
 
-public abstract class AbstractManager<T extends Account> {
+import java.util.List;
+
+public abstract class AbstractManager<T extends Account, V extends Account> {
 
   private Long id;
 
@@ -9,6 +11,8 @@ public abstract class AbstractManager<T extends Account> {
   private T account;
 
   private int employees;
+
+  protected List<V> managedAccounts;
 
   public AbstractManager() {
   }
@@ -48,6 +52,14 @@ public abstract class AbstractManager<T extends Account> {
 
   public void setEmployees(int employees) {
     this.employees = employees;
+  }
+
+  public List<V> getManagedAccounts() {
+    return managedAccounts;
+  }
+
+  public void setManagedAccounts(List<V> managedAccounts) {
+    this.managedAccounts = managedAccounts;
   }
 
 }
