@@ -3,7 +3,10 @@ package com.bizo.dtonator.config;
 import static org.apache.commons.lang.StringUtils.substringAfterLast;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
+import org.apache.commons.collections4.MultiValuedMap;
+
 import com.bizo.dtonator.Names;
+import com.bizo.dtonator.properties.GenericPartsDto;
 import com.bizo.dtonator.properties.TypeOracle;
 
 /** A property to map back/forth between DTO/domain object. */
@@ -22,6 +25,7 @@ public class DtoProperty {
   private final String getterMethodName;
   private final String setterNameMethod;
   private final boolean inherited;
+  private final String genericDomainType;
 
   public DtoProperty(
     final TypeOracle oracle,
@@ -34,7 +38,8 @@ public class DtoProperty {
     final String domainType,
     final String getterMethodName,
     final String setterNameMethod,
-    final boolean inherited) {
+    final boolean inherited,
+    final String genericDomainType) {
     this.oracle = oracle;
     this.config = config;
     this.dto = dto;
@@ -46,6 +51,7 @@ public class DtoProperty {
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
     this.inherited = inherited;
+    this.genericDomainType = genericDomainType;
   }
 
   public DtoConfig getDto() {
@@ -62,6 +68,10 @@ public class DtoProperty {
 
   public boolean isEntity() {
     return DtoConfig.isEntity(config, domainType);
+  }
+
+  public boolean isGenericType() {
+    return genericDomainType != null && !genericDomainType.isEmpty();
   }
 
   public boolean isDto() {

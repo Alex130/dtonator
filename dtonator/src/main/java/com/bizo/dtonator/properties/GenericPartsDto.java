@@ -12,7 +12,7 @@ public class GenericPartsDto implements IGenericParts {
 
   public String paramType;
   public String typeVar;
-  public Boolean wildType;
+  public Boolean wildType = false;
   public String arrayType;
   public String operator;
   public String boundClass;
@@ -153,7 +153,7 @@ public class GenericPartsDto implements IGenericParts {
     if (typeVar != null) {
       sb.append(getTypeVarString());
     }
-    if (wildType) {
+    if (wildType == true) {
       sb.append("?");
     }
     if (arrayType != null && !arrayType.isEmpty()) {
@@ -166,14 +166,14 @@ public class GenericPartsDto implements IGenericParts {
       sb.append(getBoundClassString());
     }
 
-    if (linkedTypes != null) {
-      Iterator<String> itr = linkedTypes.keySet().iterator();
+    if (paramTypeArgs != null) {
+      Iterator<String> itr = paramTypeArgs.keySet().iterator();
 
       while (itr.hasNext()) {
 
         String key = itr.next();
 
-        List<GenericPartsDto> parts = (List<GenericPartsDto>) linkedTypes.get(key);
+        List<GenericPartsDto> parts = (List<GenericPartsDto>) paramTypeArgs.get(key);
         if (parts != null) {
           ListIterator<GenericPartsDto> partsItr = parts.listIterator();
 
@@ -200,14 +200,14 @@ public class GenericPartsDto implements IGenericParts {
       }
     }
 
-    if (paramTypeArgs != null) {
-      Iterator<String> itr = paramTypeArgs.keySet().iterator();
+    if (linkedTypes != null) {
+      Iterator<String> itr = linkedTypes.keySet().iterator();
 
       while (itr.hasNext()) {
 
         String key = itr.next();
 
-        List<GenericPartsDto> parts = (List<GenericPartsDto>) paramTypeArgs.get(key);
+        List<GenericPartsDto> parts = (List<GenericPartsDto>) linkedTypes.get(key);
         if (parts != null) {
           ListIterator<GenericPartsDto> partsItr = parts.listIterator();
 
@@ -257,8 +257,8 @@ public class GenericPartsDto implements IGenericParts {
       + operator
       + ", boundClass="
       + boundClass
-      + ", getLinkedTypeString()="
-      + getLinkedTypeString()
+      + ", getParamTypeArgsString()="
+      + getParamTypeArgsString()
       + ", getLinkedTypeString()="
       + getLinkedTypeString()
       + "]";

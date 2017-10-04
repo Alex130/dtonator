@@ -5,17 +5,24 @@ import static joist.util.Copy.list;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.lang.reflect.WildcardType;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.reflect.*;
 
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 public class ReflectionTypeOracle implements TypeOracle {
 
@@ -29,6 +36,7 @@ public class ReflectionTypeOracle implements TypeOracle {
   public List<Prop> getProperties(String className, boolean excludeInherited, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
+
     for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
       if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
         continue;
@@ -38,24 +46,16 @@ public class ReflectionTypeOracle implements TypeOracle {
         continue;
       }
 
-      String type = pd.getReadMethod() == null ? pd.getPropertyType().getName()
-        : pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
-      Map<String, String> genericMap = new HashMap<String, String>();
+      String type = pd.getPropertyType().getName();
+      MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
+      if (pd.getReadMethod() != null) {
 
-      if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
-        Map<TypeVariable<?>, Type> map = TypeUtils.getTypeArguments(getClass(className), pd.getReadMethod().getDeclaringClass());
+        if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())) {
+          type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+        }
 
-        if (map != null && !map.isEmpty()) {
-
-          Type t = map.get(map.keySet().iterator().next());
-          if (t != null) {
-            type = t.getTypeName().replaceAll("^class ", "");
-          }
-
-        } else {
-
-          genericMap
-            .put(pd.getReadMethod().getReturnType().toString().replaceAll("^class ", ""), pd.getReadMethod().getGenericReturnType().toString());
+        if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
+          genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
 
         }
       }
@@ -66,7 +66,7 @@ public class ReflectionTypeOracle implements TypeOracle {
         pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
         pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
         excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
-        genericMap));
+        genericMethodMap));
     }
     return ps;
   }
@@ -109,6 +109,30 @@ public class ReflectionTypeOracle implements TypeOracle {
   }
 
   @Override
+  public MultiValuedMap<String, GenericPartsDto> getClassTypes(String className) {
+
+    try {
+      MultiValuedMap<String, GenericParts> genericClassMap = new ArrayListValuedHashMap<>();
+      genericClassMap = GenericParser.typeToMap(getClass(className));
+      return GenericParser.convertGenericMap(genericClassMap);
+    } catch (final IllegalArgumentException iae) {
+      return null;
+    }
+
+  }
+
+  @Override
+  public String getClassTypesString(String className) {
+    MultiValuedMap<String, GenericPartsDto> partsMap = getClassTypes(className);
+    String typeStr = "";
+    if (partsMap != null) {
+
+      typeStr = GenericParser.typeToMapString(partsMap);
+    }
+    return typeStr;
+  }
+
+  @Override
   public boolean isEnum(final String className) {
     try {
       return getClass(className).isEnum();
@@ -138,7 +162,11 @@ public class ReflectionTypeOracle implements TypeOracle {
 
   private static Class<?> getClass(final String className) {
     try {
-      return Class.forName(className);
+      if (className != null) {
+        return Class.forName(className);
+      } else {
+        throw new ClassNotFoundException();
+      }
     } catch (final ClassNotFoundException e) {
       throw new IllegalArgumentException(e);
     }

@@ -2,6 +2,8 @@ package com.bizo.dtonator.properties;
 
 import java.util.Map;
 
+import org.apache.commons.collections4.MultiValuedMap;
+
 /** A simple DTO to abstract discovering properties via reflection. */
 public class Prop {
 
@@ -11,7 +13,7 @@ public class Prop {
   private final String getterMethodName;
   private final String setterNameMethod;
   public final boolean inherited;
-  private final Map<String, String> genericTypes;
+  private final MultiValuedMap<String, GenericParts> genericTypes;
 
   public Prop(
     String name,
@@ -20,7 +22,7 @@ public class Prop {
     String getterMethodName,
     String setterNameMethod,
     boolean inherited,
-    Map<String, String> genericTypes) {
+    MultiValuedMap<String, GenericParts> genericTypes) {
     super();
     this.name = name;
     this.type = type;
@@ -40,7 +42,7 @@ public class Prop {
     return setterNameMethod;
   }
 
-  public Map<String, String> getGenericTypes() {
+  public MultiValuedMap<String, GenericParts> getGenericTypes() {
     return genericTypes;
   }
 

@@ -2,6 +2,8 @@ package com.bizo.dtonator.properties;
 
 import java.util.List;
 
+import org.apache.commons.collections4.MultiValuedMap;
+
 /**
  * Abstracts finding metadata about classes.
  * 
@@ -18,5 +20,9 @@ public interface TypeOracle {
   boolean isAbstract(final String className);
 
   List<String> getEnumValues(final String className);
+
+  MultiValuedMap<String, GenericPartsDto> getClassTypes(String className);
+
+  String getClassTypesString(String className);
 
 }

@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections4.MultiValuedMap;
+
 public class StubTypeOracle implements TypeOracle {
 
   private final Map<String, List<Prop>> properties = new HashMap<String, List<Prop>>();
@@ -56,5 +58,17 @@ public class StubTypeOracle implements TypeOracle {
 
   public void setEnumValues(final String className, final List<String> enumValues) {
     this.enumValues.put(className, enumValues);
+  }
+
+  @Override
+  public MultiValuedMap<String, GenericPartsDto> getClassTypes(String className) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public String getClassTypesString(String className) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

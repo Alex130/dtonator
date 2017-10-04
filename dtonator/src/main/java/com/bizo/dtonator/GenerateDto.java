@@ -13,6 +13,8 @@ import java.util.List;
 import com.bizo.dtonator.config.DtoConfig;
 import com.bizo.dtonator.config.DtoProperty;
 import com.bizo.dtonator.config.RootConfig;
+import com.bizo.dtonator.properties.GenericParser;
+import com.bizo.dtonator.properties.GenericPartsDto;
 
 import joist.sourcegen.Argument;
 import joist.sourcegen.GClass;
@@ -42,9 +44,13 @@ public class GenerateDto {
     this.takenToDtoOverloads = takenToDtoOverloads;
     this.dto = dto;
     String dtoType = dto.getDtoType();
-    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
-      dtoType = dtoType + "<" + dto.getGenericTypeParametersString() + ">";
+
+    String typeStr = dto.getClassTypesString();
+
+    if (typeStr != null && !typeStr.isEmpty()) {
+      dtoType = dtoType + "<" + typeStr + ">";
     }
+
     gc = out.getClass(dtoType);
   }
 
@@ -125,7 +131,7 @@ public class GenerateDto {
 
   private void addCopyOfMethod() {
     final GMethod m = gc.getMethod("copyOf", Argument.arg(dto.getDtoType(), "o")).returnType(dto.getDtoType()).setStatic();
-    if (dto.getGenericTypeParameters() != null) {
+    if (dto.getGenericTypeParameters() != null && !dto.isChildClass()) {
       m.typeParameters(dto.getGenericTypeParametersString());
     }
     // if there are subclasses, we'll have to probe which type of subclass to create
@@ -220,8 +226,9 @@ public class GenerateDto {
     final GClass mb = out.getClass(dtoType).setInterface();
 
     if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
-      for (String type : dto.getGenericTypeParameters().values()) {
-        mb.stripAndImportPackageIfPossible(type);
+      for (GenericPartsDto type : dto.getGenericTypeParameters().values()) {
+        if (type.getParamTypeString() != null && !type.getParamTypeString().isEmpty())
+          mb.stripAndImportPackageIfPossible(type.getParamTypeString());
       }
     }
 
@@ -397,7 +404,11 @@ public class GenerateDto {
         c.body.line("_ os.add(fromDto(dto));");
         c.body.line("}");
         c.body.line("return os;");
-      } else {
+      } else if (dp.isGenericType()) {
+        fromDto.body.line("_ o.{}(fromDto(dto.{}));", dp.getSetterMethodName(), dp.getName());
+      }
+
+      else {
         fromDto.body.line("_ o.{}(dto.{});", dp.getSetterMethodName(), dp.getName());
       }
     }

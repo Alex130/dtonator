@@ -9,16 +9,23 @@ import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.Predicate;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 
+import com.bizo.dtonator.properties.GenericParser;
+import com.bizo.dtonator.properties.GenericParts;
+import com.bizo.dtonator.properties.GenericPartsDto;
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
 
@@ -31,7 +38,7 @@ public class DtoConfig {
   private final String simpleName;
   private final Map<String, Object> map;
   private List<DtoProperty> properties;
-  private Map<String, String> genericTypeParameters;
+  private MultiValuedMap<String, GenericPartsDto> genericTypeParameters;
 
   public DtoConfig(final TypeOracle oracle, final RootConfig root, final String simpleName, final Object map) {
     this.oracle = oracle;
@@ -281,6 +288,16 @@ public class DtoConfig {
     return getDomainType() == null;
   }
 
+  public String getClassTypesString() {
+    MultiValuedMap<String, GenericPartsDto> results = oracle.getClassTypes(getDomainType());
+    if (results != null && !results.isEmpty()) {
+      guessGenericDtos(results);
+      return GenericParser.typeToMapString(results);
+    } else {
+      return null;
+    }
+  }
+
   /** @return a list of properties that we want to force mapper methods for */
   public List<String> getForcedMappers() {
     return YamlUtils.parseExpectedStringToList("forceMapperMethods", map.get("forceMapperMethods"));
@@ -345,7 +362,8 @@ public class DtoConfig {
           p.type,
           p.getGetterMethodName(),
           p.getSetterNameMethod(),
-          p.inherited));
+          p.inherited,
+          null));
       }
     }
   }
@@ -376,33 +394,70 @@ public class DtoConfig {
       boolean extension = false;
 
       final String dtoType;
-      if (pc != null && pc.type != null) {
-        // the user provided a PropConfig with an explicit type
-        if (root.getDto(pc.type) != null) {
-          // the type was FooDto, we need to fully qualify it
-          dtoType = root.getDto(pc.type).getDtoType();
-        } else if (isListOfDtos(root, pc.type)) {
-          // the type was java.util.ArrayList<FooDto>, resolve the dto package
-          dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
-        } else if (isSetOfDtos(root, pc.type)) {
-          // the type was java.util.HashSet<FooDto>, resolve the dto package
-          dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
-        } else {
-          dtoType = pc.type;
-          extension = !dtoType.equals(domainType);
-        }
+      String genericDomainType = null;
 
+      if (pc != null && pc.type != null) {
+        String pcType = pc.type;
         if (!pc.type.equals(pc.fullType) && pc.fullTypeParts() != null && pc.fullTypeParts().length >= 2) {
           //the type was a generic
           if (genericTypeParameters == null) {
-            genericTypeParameters = new HashMap<String, String>();
+            genericTypeParameters = new ArrayListValuedHashMap<>();
           }
-          genericTypeParameters.put(pc.fullTypeParts()[0], root.getDtoPackage() + "." + pc.fullTypeParts()[1]);
+          GenericPartsDto gpDto = new GenericPartsDto();
+          if (pc.fullTypeParts().length == 3) {
+            gpDto.typeVar = pc.fullTypeParts()[0];
+            gpDto.operator = pc.fullTypeParts()[1];
+            gpDto.boundClass = pc.fullTypeParts()[2];
+
+          }
+          genericTypeParameters.put(p.name, gpDto);
         }
+        // the user provided a PropConfig with an explicit type
+        if (root.getDto(pcType) != null) {
+          // the type was FooDto, we need to fully qualify it
+          dtoType = root.getDto(pcType).getDtoType();
+        } else if (isListOfDtos(root, pcType)) {
+          // the type was java.util.ArrayList<FooDto>, resolve the dto package
+          dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+        } else if (isSetOfDtos(root, pcType)) {
+          // the type was java.util.HashSet<FooDto>, resolve the dto package
+          dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+        } else {
+          dtoType = pcType;
+          extension = !dtoType.equals(domainType);
+        }
+
         // TODO pc.type might ValueType (client-side), need to fully quality it?
       } else {
+
+        if (p.getGenericTypes() != null && !p.getGenericTypes().isEmpty()) {
+
+          MultiValuedMap<String, GenericPartsDto> partsDtoMap = new ArrayListValuedHashMap<>();
+          partsDtoMap = GenericParser.convertGenericMap(p.getGenericTypes());
+
+          if (pc != null) {
+
+            GenericPartsDto gp = partsDtoMap.values().iterator().next();
+            if (gp != null && gp.paramType != null && !gp.paramType.isEmpty()) {
+              guessGenericDtos(partsDtoMap);
+
+              if (genericTypeParameters == null) {
+                genericTypeParameters = new ArrayListValuedHashMap<>();
+              }
+              genericTypeParameters.putAll(partsDtoMap);
+
+              dtoType = domainType;
+            } else {
+              dtoType = null;
+            }
+
+          } else {
+            dtoType = null;
+          }
+
+        }
         // no PropConfig with an explicit type, so we infer the dto type from the domain type
-        if (root.getValueTypeForDomainType(domainType) != null) {
+        else if (root.getValueTypeForDomainType(domainType) != null) {
           dtoType = root.getValueTypeForDomainType(domainType).dtoType;
         } else if (oracle.isEnum(domainType)) {
           dtoType = root.getDtoPackage() + "." + simple(domainType);
@@ -427,29 +482,6 @@ public class DtoConfig {
           } else {
             dtoType = null;
           }
-        } else if (p.getGenericTypes() != null && !p.getGenericTypes().isEmpty()) {
-
-          String genericClass = p.getGenericTypes().keySet().iterator().next();
-          String genericType = p.getGenericTypes().get(genericClass);
-          System.out.println(p.type + " " + genericClass + "=" + genericType);
-
-          if (genericType == null) {
-            //No type variable indicates that this class has a concrete type that we want to use
-            dtoType = guessDtoTypeForDomainType(root, genericClass).getDtoType();
-          } else {
-
-            if (genericTypeParameters == null) {
-              genericTypeParameters = new HashMap<String, String>();
-            }
-
-            String genericDtoType = guessDtoTypeForDomainType(root, genericClass).getDtoType();
-            genericTypeParameters.put(genericType, genericDtoType);
-
-            dtoType = domainType;
-            domainType = genericClass;
-
-          }
-
         } else {
           dtoType = domainType;
 
@@ -462,6 +494,8 @@ public class DtoConfig {
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
 
+      genericDomainType = findMappedTypeForProperty(domainType, p.getGenericTypes());
+
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -473,8 +507,51 @@ public class DtoConfig {
         domainType,
         extension ? null : p.getGetterMethodName(),
         extension ? null : p.getSetterNameMethod(),
-        p.inherited));
+        p.inherited,
+        genericDomainType));
 
+    }
+  }
+
+  private String findMappedTypeForProperty(String domainType, MultiValuedMap<String, GenericParts> genericMap) {
+
+    MultiValuedMap<String, GenericParts> flatMap = GenericParser.flattenGenericMap(genericMap);
+    if (flatMap != null) {
+      Collection<GenericParts> parts = flatMap.get(domainType);
+      if (parts != null) {
+        for (GenericParts gp : parts) {
+          if (gp.getTypeVarString() == null || gp.getTypeVarString().isEmpty() || domainType.equals(gp.getTypeVarString())) {
+
+            if (gp.paramTypeArgs != null && !gp.paramTypeArgs.isEmpty()) {
+              return findMappedTypeForProperty(domainType, gp.paramTypeArgs);
+            } else if (gp.linkedTypes != null && !gp.linkedTypes.isEmpty()) {
+              return findMappedTypeForProperty(domainType, gp.getLinkedTypes());
+            }
+
+            else if (gp.boundClass != null) {
+              return gp.getBoundClassString();
+            }
+
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private void guessGenericDtos(MultiValuedMap<String, GenericPartsDto> partsDtoMap) {
+    for (GenericPartsDto gp : partsDtoMap.values()) {
+      if (gp.paramTypeArgs != null && !gp.paramTypeArgs.isEmpty()) {
+        guessGenericDtos(gp.getParamTypeArgs());
+      }
+      if (gp.linkedTypes != null && !gp.linkedTypes.isEmpty()) {
+        guessGenericDtos(gp.getLinkedTypes());
+      }
+
+      if (gp.boundClass != null && isEntity(root, gp.boundClass)) {
+        gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
+      }
     }
   }
 
@@ -533,7 +610,8 @@ public class DtoConfig {
         domainType,
         null,
         null,
-        false));
+        false,
+        null));
     }
 
   }
@@ -729,7 +807,7 @@ public class DtoConfig {
   }
 
   static boolean isSetOfDtos(final RootConfig config, final String pcType) {
-    // assume the user wanted List to be ArrayList
+    // assume the user wanted List to be HashSet
     if ((pcType.startsWith("java.util.HashSet<") || pcType.startsWith("java.util.Set<")) && pcType.endsWith(">")) {
       return config.getDto(simple(listType(pcType))) != null;
     }
@@ -745,28 +823,30 @@ public class DtoConfig {
     return false;
   }
 
-  public Map<String, String> getGenericTypeParameters() {
+  public MultiValuedMap<String, GenericPartsDto> getGenericTypeParameters() {
     return genericTypeParameters;
   }
 
   public String getGenericTypeParametersString() {
+    return getGenericTypeParametersString(getAllPropertiesMap().keySet());
+  }
+
+  public String getGenericTypeParametersString(Set<String> propertyNames) {
     String typeString = "";
 
     if (getGenericTypeParameters() != null) {
-      Iterator<String> itr = getGenericTypeParameters().keySet().iterator();
 
-      while (itr.hasNext()) {
-
-        String key = itr.next();
-        typeString += key;
-        String classString = getGenericTypeParameters().get(key);
-        if (classString != null) {
-          typeString += " extends " + classString;
-        }
-        if (itr.hasNext()) {
-          typeString += ",";
+      MultiValuedMap<String, GenericPartsDto> typeMap = new ArrayListValuedHashMap<>();
+      if (propertyNames != null) {
+        for (String property : propertyNames) {
+          if (getGenericTypeParameters().containsKey(property)) {
+            typeMap.putAll(property, getGenericTypeParameters().get(property));
+          }
         }
       }
+      MultiValuedMap<String, GenericPartsDto> flatMap = GenericParser.flattenGenericMap(typeMap);
+      typeString = GenericParser.typeToMapString(flatMap);
+
     }
     return typeString;
   }
