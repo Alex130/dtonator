@@ -148,6 +148,7 @@ public class GenerateDto {
       // first make copies of children if needed      
       for (final DtoProperty dp : c.getAllPropertiesMap().values()) {
         if (dp.isListOfDtos()) {
+          gc.stripAndImportPackageIfPossible("java.util.ArrayList");
           m.body.line("_ ArrayList<{}> {}Copy = new ArrayList<{}>();", dp.getSingleDto(), dp.getName(), dp.getSingleDto());
           m.body.line("_ for ({} e : (({}) o).{}) {", dp.getSingleDto(), c.getDtoType(), dp.getName());
           if (dp.getSingleDto().isEnum()) {
@@ -157,6 +158,7 @@ public class GenerateDto {
           }
           m.body.line("_ }");
         } else if (dp.isSetOfDtos()) {
+          gc.stripAndImportPackageIfPossible("java.util.HashSet");
           m.body.line("_ HashSet<{}> {}Copy = new HashSet<{}>();", dp.getSingleDto(), dp.getName(), dp.getSingleDto());
           m.body.line("_ for ({} e : (({}) o).{}) {", dp.getSingleDto(), c.getDtoType(), dp.getName());
           if (dp.getSingleDto().isEnum()) {
