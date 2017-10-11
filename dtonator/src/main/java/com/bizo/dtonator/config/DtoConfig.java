@@ -184,6 +184,14 @@ public class DtoConfig {
 
   }
 
+  public String getDomainPackage() {
+    String domain = (String) map.get("domainPackage");
+    if (domain == null) {
+      domain = root.getDomainPackage();
+    }
+    return domain;
+  }
+
   public String getBaseDtoSimpleNameWithGenerics() {
     return (String) map.get("extends");
   }
@@ -269,7 +277,7 @@ public class DtoConfig {
     if (rawValue.contains(".")) {
       return rawValue;
     } else {
-      return root.getDomainPackage() + "." + rawValue;
+      return getDomainPackage() + "." + rawValue;
     }
   }
 
@@ -476,21 +484,21 @@ public class DtoConfig {
           dtoType = root.getValueTypeForDomainType(domainType).dtoType;
         } else if (oracle.isEnum(domainType)) {
           dtoType = root.getDtoPackage() + "." + simple(domainType);
-        } else if (isListOfEntities(root, domainType)) {
+        } else if (isListOfEntities(getDomainPackage(), domainType)) {
           // only map lists of entities if it was included in properties
           if (pc != null) {
             dtoType = "java.util.ArrayList<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
-        } else if (isSetOfEntities(root, domainType)) {
+        } else if (isSetOfEntities(getDomainPackage(), domainType)) {
           // only map lists of entities if it was included in properties
           if (pc != null) {
             dtoType = "java.util.HashSet<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
-        } else if (domainType.startsWith(root.getDomainPackage())) {
+        } else if (domainType.startsWith(getDomainPackage())) {
           // only map entities if it was included in properties
           if (pc != null) {
             dtoType = guessDtoTypeForDomainType(root, domainType).getDtoType();
@@ -564,7 +572,7 @@ public class DtoConfig {
         guessGenericDtos(gp.getLinkedTypes());
       }
 
-      if (gp.boundClass != null && isEntity(root, gp.boundClass)) {
+      if (gp.boundClass != null && isEntity(root, getDomainPackage(), gp.boundClass)) {
         gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
       }
     }
@@ -605,9 +613,9 @@ public class DtoConfig {
       } else if (root.getValueTypeForDtoType(pc.type) != null) {
         dtoType = root.getValueTypeForDtoType(pc.type).dtoType; // fully qualified
         domainType = root.getValueTypeForDtoType(pc.type).domainType;
-      } else if (oracle.isEnum(root.getDomainPackage() + "." + pc.type)) {
+      } else if (oracle.isEnum(getDomainPackage() + "." + pc.type)) {
         dtoType = root.getDtoPackage() + "." + pc.type;
-        domainType = root.getDomainPackage() + "." + pc.type;
+        domainType = getDomainPackage() + "." + pc.type;
       } else {
         // assume pc.type is the dto type
         dtoType = pc.type;
@@ -804,16 +812,16 @@ public class DtoConfig {
     return childConfig;
   }
 
-  static boolean isListOfEntities(final RootConfig config, final String domainType) {
-    return domainType.startsWith("java.util.List<" + config.getDomainPackage());
+  static boolean isListOfEntities(final String domainPackage, final String domainType) {
+    return domainType.startsWith("java.util.List<" + domainPackage);
   }
 
-  static boolean isSetOfEntities(final RootConfig config, final String domainType) {
-    return domainType.startsWith("java.util.Set<" + config.getDomainPackage());
+  static boolean isSetOfEntities(final String domainPackage, final String domainType) {
+    return domainType.startsWith("java.util.Set<" + domainPackage);
   }
 
-  static boolean isEntity(final RootConfig config, final String domainType) {
-    return domainType.startsWith(config.getDomainPackage()) && config.getValueTypeForDomainType(domainType) == null;
+  static boolean isEntity(final RootConfig config, String domainPackage, final String domainType) {
+    return domainType.startsWith(domainPackage) && config.getValueTypeForDomainType(domainType) == null;
   }
 
   static boolean isListOfDtos(final RootConfig config, final String pcType) {

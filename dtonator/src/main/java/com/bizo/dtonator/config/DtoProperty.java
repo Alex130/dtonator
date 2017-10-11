@@ -67,7 +67,7 @@ public class DtoProperty {
   }
 
   public boolean isEntity() {
-    return DtoConfig.isEntity(config, domainType);
+    return DtoConfig.isEntity(config, dto.getDomainPackage(), domainType);
   }
 
   public boolean isGenericType() {
@@ -87,11 +87,11 @@ public class DtoProperty {
   }
 
   public boolean isListOfEntities() {
-    return DtoConfig.isListOfEntities(config, domainType);
+    return DtoConfig.isListOfEntities(dto.getDomainPackage(), domainType);
   }
 
   public boolean isSetOfEntities() {
-    return DtoConfig.isSetOfEntities(config, domainType);
+    return DtoConfig.isSetOfEntities(dto.getDomainPackage(), domainType);
   }
 
   public boolean isListOfDtos() {
