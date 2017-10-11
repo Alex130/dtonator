@@ -107,6 +107,12 @@ BlueHueAccountDto:
   properties: zaz
   tessellModel: true
   
+#test custom domain package
+OrangeAccountDto:
+  domainPackage: com.bizo.dtonator.domain.foo
+  domain: OrangeAccount
+  properties: foo
+  
 #testing excluding annotated fields
 EmployeeWithoutAnnotationsDto:
   domain: EmployeeWithAnnotations
