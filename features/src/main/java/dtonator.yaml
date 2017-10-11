@@ -142,7 +142,8 @@ AbstractManagerDto:
   
 OtherManagerDto:
   domain: AbstractManager
-  properties: account T extends AccountDto, *
+  types: T extends AccountDto, V extends AccountDto
+  properties: account T, managedAccounts List<V>, *
 
 GreenManagerDto:
   domain: GreenManager
@@ -151,8 +152,8 @@ GreenManagerDto:
 
 OtherYellowManagerDto:
   domain: YellowManager
-  extends: "OtherManagerDto<YellowAccountDto,YellowAccountDto>"
-  properties: account YellowAccountDto, *
+  extends: "OtherManagerDto<YellowAccountDto, YellowAccountDto>"
+  properties: account YellowAccountDto, managedAccounts List<YellowAccountDto>,*
 
 # enums
 EmployeeType:
