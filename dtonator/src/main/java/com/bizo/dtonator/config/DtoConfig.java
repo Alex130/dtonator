@@ -147,6 +147,30 @@ public class DtoConfig {
     return interfaces;
   }
 
+  /** @return the generic types this DTO  should define. */
+  public List<String> getGenericTypes() {
+    final List<String> types = list();
+    if (map.containsKey("types")) {
+      types.addAll(list(((String) map.get("types")).split(", ?")));
+    }
+
+    return types;
+  }
+
+  public String getClassTypesString() {
+    if (map.containsKey("types")) {
+      return (String) map.get("types");
+    } else {
+      MultiValuedMap<String, GenericPartsDto> results = oracle.getClassTypes(getDomainType());
+      if (results != null && !results.isEmpty()) {
+        guessGenericDtos(results);
+        return GenericParser.typeToMapString(results);
+      } else {
+        return null;
+      }
+    }
+  }
+
   public boolean isChildClass() {
     return getBaseDtoSimpleName() != null;
   }
@@ -286,16 +310,6 @@ public class DtoConfig {
 
   public boolean isManualDto() {
     return getDomainType() == null;
-  }
-
-  public String getClassTypesString() {
-    MultiValuedMap<String, GenericPartsDto> results = oracle.getClassTypes(getDomainType());
-    if (results != null && !results.isEmpty()) {
-      guessGenericDtos(results);
-      return GenericParser.typeToMapString(results);
-    } else {
-      return null;
-    }
   }
 
   /** @return a list of properties that we want to force mapper methods for */
