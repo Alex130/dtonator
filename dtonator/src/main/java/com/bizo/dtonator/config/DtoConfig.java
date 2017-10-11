@@ -11,6 +11,7 @@ import static org.apache.commons.lang.StringUtils.substringBetween;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -740,24 +741,27 @@ public class DtoConfig {
 
   /** Sorts the properties based on their order in the YAML file, whether they're {@code id}, or alphabetically. */
   private static void sortProperties(final List<PropConfig> pcs, final List<DtoProperty> properties) {
-    Collections.sort(properties, (o1, o2) -> {
-      final PropConfig pc1 = findPropConfig(pcs, o1.getName());
-      final PropConfig pc2 = findPropConfig(pcs, o2.getName());
-      if (pc1 != null && pc2 != null) {
-        return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
-      } else if (pc1 != null && pc2 == null) {
-        return -1;
-      } else if (pc1 == null && pc2 != null) {
-        return 1;
-      } else {
-        if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
-          return 0;
-        } else if ("id".equals(o1.getName())) {
+    Collections.sort(properties, new Comparator<DtoProperty>() {
+      @Override
+      public int compare(DtoProperty o1, DtoProperty o2) {
+        final PropConfig pc1 = findPropConfig(pcs, o1.getName());
+        final PropConfig pc2 = findPropConfig(pcs, o2.getName());
+        if (pc1 != null && pc2 != null) {
+          return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
+        } else if (pc1 != null && pc2 == null) {
           return -1;
-        } else if ("id".equals(o2.getName())) {
+        } else if (pc1 == null && pc2 != null) {
           return 1;
+        } else {
+          if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
+            return 0;
+          } else if ("id".equals(o1.getName())) {
+            return -1;
+          } else if ("id".equals(o2.getName())) {
+            return 1;
+          }
+          return o1.getName().compareTo(o2.getName());
         }
-        return o1.getName().compareTo(o2.getName());
       }
     });
   }
