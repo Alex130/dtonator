@@ -36,44 +36,49 @@ public class ReflectionTypeOracle implements TypeOracle {
   public List<Prop> getProperties(String className, boolean excludeInherited, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
-
-    for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
-      if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
-        continue;
-      }
-
-      if (!includeAnnotatedField(className, pd, excludedAnnotations)) {
-        continue;
-      }
-
-      String type = pd.getPropertyType().getName();
-      MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
-      if (pd.getReadMethod() != null) {
-
-        if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())) {
-          type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+    try {
+      Class<?> clazz = getClass(className);
+      for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
+        if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
+          continue;
         }
 
-        if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
-          genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
-
+        if (!includeAnnotatedField(clazz, pd, excludedAnnotations)) {
+          continue;
         }
+
+        String type = pd.getPropertyType().getName();
+        MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
+        if (pd.getReadMethod() != null) {
+
+          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())) {
+            type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+          }
+
+          if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
+            genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
+
+          }
+        }
+        ps.add(new Prop( //
+          pd.getName(),
+          type,
+          pd.getWriteMethod() == null,
+          pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
+          pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
+          excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
+          genericMethodMap));
       }
-      ps.add(new Prop( //
-        pd.getName(),
-        type,
-        pd.getWriteMethod() == null,
-        pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
-        pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
-        excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
-        genericMethodMap));
+
+      return ps;
+    } catch (final ClassNotFoundException iae) {
+      return list();
     }
-    return ps;
   }
 
-  private boolean includeAnnotatedField(String className, PropertyDescriptor pd, List<String> excludedAnnotations) {
+  private boolean includeAnnotatedField(Class<?> clazz, PropertyDescriptor pd, List<String> excludedAnnotations) throws ClassNotFoundException {
 
-    if (excludedAnnotations != null && hasAnnotation(className, pd, excludedAnnotations)) {
+    if (excludedAnnotations != null && hasAnnotation(clazz, pd, excludedAnnotations)) {
       return false;
     }
 
@@ -81,12 +86,12 @@ public class ReflectionTypeOracle implements TypeOracle {
 
   }
 
-  public static boolean hasAnnotation(final String className, final PropertyDescriptor pd, List<String> annotations) {
+  public static boolean hasAnnotation(Class<?> clazz, final PropertyDescriptor pd, List<String> annotations) throws ClassNotFoundException {
 
     if (annotations != null) {
+
       for (String annotationName : annotations) {
 
-        Class<?> clazz = getClass(className);
         Class<? extends Annotation> annotation = (Class<? extends Annotation>) getClass(annotationName);
 
         List<Field> annotatedFields = FieldUtils.getFieldsListWithAnnotation(clazz, annotation);
@@ -115,7 +120,7 @@ public class ReflectionTypeOracle implements TypeOracle {
       MultiValuedMap<String, GenericParts> genericClassMap = new ArrayListValuedHashMap<>();
       genericClassMap = GenericParser.typeToMap(getClass(className));
       return GenericParser.convertGenericMap(genericClassMap);
-    } catch (final IllegalArgumentException iae) {
+    } catch (final ClassNotFoundException iae) {
       return null;
     }
 
@@ -136,7 +141,7 @@ public class ReflectionTypeOracle implements TypeOracle {
   public boolean isEnum(final String className) {
     try {
       return getClass(className).isEnum();
-    } catch (final IllegalArgumentException iae) {
+    } catch (final ClassNotFoundException iae) {
       return false; // for primitives like boolean
     }
   }
@@ -145,30 +150,34 @@ public class ReflectionTypeOracle implements TypeOracle {
   public boolean isAbstract(String className) {
     try {
       return Modifier.isAbstract(getClass(className).getModifiers());
-    } catch (final IllegalArgumentException iae) {
+    } catch (final ClassNotFoundException iae) {
       return false; // for primitives like boolean
     }
   }
 
   @Override
   public List<String> getEnumValues(final String className) {
-    final List<String> values = list();
-    for (final Object o : getClass(className).getEnumConstants()) {
-      final Enum<?> e = (Enum<?>) o;
-      values.add(e.name());
+
+    try {
+      final List<String> values = list();
+      for (final Object o : getClass(className).getEnumConstants()) {
+        final Enum<?> e = (Enum<?>) o;
+        values.add(e.name());
+      }
+      return values;
+    } catch (final ClassNotFoundException iae) {
+      return list(); // for primitives like boolean
     }
-    return values;
+
   }
 
-  private static Class<?> getClass(final String className) {
-    try {
-      if (className != null) {
-        return Class.forName(className);
-      } else {
-        throw new ClassNotFoundException();
-      }
-    } catch (final ClassNotFoundException e) {
-      throw new IllegalArgumentException(e);
+  private static Class<?> getClass(final String className) throws ClassNotFoundException {
+
+    if (className != null) {
+      return Class.forName(className);
+    } else {
+      throw new ClassNotFoundException();
     }
+
   }
 }
