@@ -369,7 +369,7 @@ public class DtoConfig {
         continue;
       }
       final boolean hasGetterSetter = p.getGetterMethodName() != null && p.getSetterNameMethod() != null;
-      final boolean isDomainObject = isDomainObject(oracle, p.type);
+      final boolean isDomainObject = isDomainObject(root, getDomainPackage(), p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
@@ -572,7 +572,7 @@ public class DtoConfig {
         guessGenericDtos(gp.getLinkedTypes());
       }
 
-      if (gp.boundClass != null && isEntity(root, getDomainPackage(), gp.boundClass)) {
+      if (gp.boundClass != null && isDomainObject(root, getDomainPackage(), gp.boundClass)) {
         gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
       }
     }
@@ -820,7 +820,7 @@ public class DtoConfig {
     return domainType.startsWith("java.util.Set<" + domainPackage);
   }
 
-  static boolean isEntity(final RootConfig config, String domainPackage, final String domainType) {
+  static boolean isDomainObject(final RootConfig config, String domainPackage, final String domainType) {
     return domainType.startsWith(domainPackage) && config.getValueTypeForDomainType(domainType) == null;
   }
 
@@ -840,7 +840,7 @@ public class DtoConfig {
     return false;
   }
 
-  static boolean isDomainObject(final TypeOracle oracle, final String type) {
+  static boolean isEntity(final TypeOracle oracle, final String type) {
     for (final Prop p : oracle.getProperties(type, false)) {
       if (p.name.equals("id") && p.type.equals("java.lang.Long")) {
         return true;
