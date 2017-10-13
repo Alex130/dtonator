@@ -21,7 +21,7 @@ public class DtoConfigTest {
 
   @Before
   public void setupRootConfig() {
-    config.put("domainPackage", "com.domain");
+    config.put("domainPackage", "com.domain, com.other");
     config.put("dtoPackage", "com.dto");
     root.put("config", config);
   }
@@ -316,6 +316,54 @@ public class DtoConfigTest {
     // given a parent and child
     oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
     oracle.addProperty("com.domain.Parent", "children", "java.util.List<com.domain.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testMappedPropertiesThatAreSetsOfEntities() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.Set<com.domain.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testPropertiesThatAreListsOfEntitiesInDifferentDomain() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.List<com.other.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testPropertiesThatAreSetsOfEntitiesInDifferentDomain() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.Set<com.other.Child>");
     oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
     // and the child dto has an entry in the yaml file
     addDto("ChildDto", properties("*"));

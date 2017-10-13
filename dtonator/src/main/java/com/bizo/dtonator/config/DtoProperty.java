@@ -87,11 +87,11 @@ public class DtoProperty {
   }
 
   public boolean isListOfEntities() {
-    return DtoConfig.isListOfEntities(dto.getDomainPackage(), domainType);
+    return DtoConfig.isListOfEntities(config, domainType);
   }
 
   public boolean isSetOfEntities() {
-    return DtoConfig.isSetOfEntities(dto.getDomainPackage(), domainType);
+    return DtoConfig.isSetOfEntities(config, domainType);
   }
 
   public boolean isListOfDtos() {
