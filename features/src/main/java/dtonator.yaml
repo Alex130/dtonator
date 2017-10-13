@@ -1,6 +1,6 @@
 config:
   dtoPackage: com.bizo.dtonator.dtos
-  domainPackage: com.bizo.dtonator.domain
+  domainPackage: com.bizo.dtonator.domain, com.bizo.foo.domain
   mapperPackage: com.bizo.dtonator.mapper
   modelPackage: com.bizo.dtonator.client.model
   indent: two-space
@@ -109,9 +109,15 @@ BlueHueAccountDto:
   
 #test custom domain package
 OrangeAccountDto:
-  domainPackage: com.bizo.dtonator.domain.foo
+  domainPackage: com.bizo.foo.domain
   domain: OrangeAccount
   properties: foo
+  
+#test entity with a property in a different domain
+OrangeManagerDto:
+  domain: OrangeManager
+  properties: '*'
+  
   
 #testing excluding annotated fields
 EmployeeWithoutAnnotationsDto:

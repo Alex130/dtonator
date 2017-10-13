@@ -1,4 +1,4 @@
-package com.bizo.dtonator.domain.foo;
+package com.bizo.foo.domain;
 
 public class OrangeAccount {
 
