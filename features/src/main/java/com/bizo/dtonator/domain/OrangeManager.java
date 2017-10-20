@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.bizo.foo.domain.OrangeAccount;
 
-public class OrangeManager<T> {
+public class OrangeManager {
 
   private Long id;
 

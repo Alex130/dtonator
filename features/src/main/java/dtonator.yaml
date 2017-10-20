@@ -18,6 +18,11 @@ EmployeeDto:
   properties: '*'
   equality: '*'
 
+InternDto:
+  domain: Intern
+  extends: EmployeeDto
+  properties: '*'
+ 
 # testing a list of ids
 EmployeeWithAccountIdsDto:
   domain: Employee
