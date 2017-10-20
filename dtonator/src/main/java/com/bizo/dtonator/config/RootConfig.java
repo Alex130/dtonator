@@ -26,8 +26,15 @@ public class RootConfig {
     return getConfig().get("dtoPackage");
   }
 
-  public String getDomainPackage() {
-    return getConfig().get("domainPackage");
+  public List<String> getDomainPackages() {
+
+    final Object value = getConfig().get("domainPackage");
+    if (value == null) {
+      return list();
+    } else {
+      return YamlUtils.parseExpectedStringToList("domainPackage", value);
+    }
+
   }
 
   public String getMapperPackage() {

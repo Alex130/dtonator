@@ -11,6 +11,7 @@ import static org.apache.commons.lang.StringUtils.substringBetween;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -99,7 +100,9 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getAllProperties() {
-    return list(getInheritedProperties()).with(getClassProperties());
+    List<DtoProperty> properties = list();
+    properties.addAll(getAllPropertiesMap().values());
+    return properties;
   }
 
   public Map<String, DtoProperty> getAllPropertiesMap() {
@@ -181,6 +184,15 @@ public class DtoConfig {
 
     return StringUtils.removePattern(name, "<.*>");
 
+  }
+
+  public String getDomainPackage() {
+    String domain = (String) map.get("domainPackage");
+    if (domain == null && !root.getDomainPackages().isEmpty()) {
+      //if the domain package is not specified, default to the first root level domain package
+      domain = root.getDomainPackages().get(0);
+    }
+    return domain;
   }
 
   public String getBaseDtoSimpleNameWithGenerics() {
@@ -268,7 +280,7 @@ public class DtoConfig {
     if (rawValue.contains(".")) {
       return rawValue;
     } else {
-      return root.getDomainPackage() + "." + rawValue;
+      return getDomainPackage() + "." + rawValue;
     }
   }
 
@@ -360,7 +372,7 @@ public class DtoConfig {
         continue;
       }
       final boolean hasGetterSetter = p.getGetterMethodName() != null && p.getSetterNameMethod() != null;
-      final boolean isDomainObject = isDomainObject(oracle, p.type);
+      final boolean isDomainObject = isEntity(oracle, p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
@@ -489,7 +501,7 @@ public class DtoConfig {
           } else {
             dtoType = null;
           }
-        } else if (domainType.startsWith(root.getDomainPackage())) {
+        } else if (isDomainObject(root, domainType)) {
           // only map entities if it was included in properties
           if (pc != null) {
             dtoType = guessDtoTypeForDomainType(root, domainType).getDtoType();
@@ -563,7 +575,7 @@ public class DtoConfig {
         guessGenericDtos(gp.getLinkedTypes());
       }
 
-      if (gp.boundClass != null && isEntity(root, gp.boundClass)) {
+      if (gp.boundClass != null && isEntity(oracle, gp.boundClass)) {
         gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
       }
     }
@@ -604,9 +616,9 @@ public class DtoConfig {
       } else if (root.getValueTypeForDtoType(pc.type) != null) {
         dtoType = root.getValueTypeForDtoType(pc.type).dtoType; // fully qualified
         domainType = root.getValueTypeForDtoType(pc.type).domainType;
-      } else if (oracle.isEnum(root.getDomainPackage() + "." + pc.type)) {
+      } else if (oracle.isEnum(getDomainPackage() + "." + pc.type)) {
         dtoType = root.getDtoPackage() + "." + pc.type;
-        domainType = root.getDomainPackage() + "." + pc.type;
+        domainType = getDomainPackage() + "." + pc.type;
       } else {
         // assume pc.type is the dto type
         dtoType = pc.type;
@@ -740,24 +752,27 @@ public class DtoConfig {
 
   /** Sorts the properties based on their order in the YAML file, whether they're {@code id}, or alphabetically. */
   private static void sortProperties(final List<PropConfig> pcs, final List<DtoProperty> properties) {
-    Collections.sort(properties, (o1, o2) -> {
-      final PropConfig pc1 = findPropConfig(pcs, o1.getName());
-      final PropConfig pc2 = findPropConfig(pcs, o2.getName());
-      if (pc1 != null && pc2 != null) {
-        return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
-      } else if (pc1 != null && pc2 == null) {
-        return -1;
-      } else if (pc1 == null && pc2 != null) {
-        return 1;
-      } else {
-        if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
-          return 0;
-        } else if ("id".equals(o1.getName())) {
+    Collections.sort(properties, new Comparator<DtoProperty>() {
+      @Override
+      public int compare(DtoProperty o1, DtoProperty o2) {
+        final PropConfig pc1 = findPropConfig(pcs, o1.getName());
+        final PropConfig pc2 = findPropConfig(pcs, o2.getName());
+        if (pc1 != null && pc2 != null) {
+          return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
+        } else if (pc1 != null && pc2 == null) {
           return -1;
-        } else if ("id".equals(o2.getName())) {
+        } else if (pc1 == null && pc2 != null) {
           return 1;
+        } else {
+          if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
+            return 0;
+          } else if ("id".equals(o1.getName())) {
+            return -1;
+          } else if ("id".equals(o2.getName())) {
+            return 1;
+          }
+          return o1.getName().compareTo(o2.getName());
         }
-        return o1.getName().compareTo(o2.getName());
       }
     });
   }
@@ -800,16 +815,25 @@ public class DtoConfig {
     return childConfig;
   }
 
-  static boolean isListOfEntities(final RootConfig config, final String domainType) {
-    return domainType.startsWith("java.util.List<" + config.getDomainPackage());
+  static boolean isListOfEntities(final RootConfig root, final String domainType) {
+    String domainString = StringUtils.substringBetween(domainType, "java.util.List<", ">");
+    return domainString != null && !domainString.equals(domainType) && isDomainObject(root, domainString);
+
   }
 
-  static boolean isSetOfEntities(final RootConfig config, final String domainType) {
-    return domainType.startsWith("java.util.Set<" + config.getDomainPackage());
+  static boolean isSetOfEntities(final RootConfig root, final String domainType) {
+    String domainString = StringUtils.substringBetween(domainType, "java.util.Set<", ">");
+    return domainString != null && !domainString.equals(domainType) && isDomainObject(root, domainString);
   }
 
-  static boolean isEntity(final RootConfig config, final String domainType) {
-    return domainType.startsWith(config.getDomainPackage()) && config.getValueTypeForDomainType(domainType) == null;
+  static boolean isDomainObject(final RootConfig config, final String domainType) {
+
+    for (String dp : config.getDomainPackages()) {
+      if (domainType.startsWith(dp)) {
+        return config.getValueTypeForDomainType(domainType) == null;
+      }
+    }
+    return false;
   }
 
   static boolean isListOfDtos(final RootConfig config, final String pcType) {
@@ -828,7 +852,7 @@ public class DtoConfig {
     return false;
   }
 
-  static boolean isDomainObject(final TypeOracle oracle, final String type) {
+  static boolean isEntity(final TypeOracle oracle, final String type) {
     for (final Prop p : oracle.getProperties(type, false)) {
       if (p.name.equals("id") && p.type.equals("java.lang.Long")) {
         return true;

@@ -155,12 +155,12 @@ public class GenericParser {
               String type = gp.getTypeVarString();
               partsList.put(type, gp);
               if (gp.getLinkedTypes() != null && !gp.getLinkedTypes().isEmpty()) {
-                flattenGenericMap(gp.getLinkedTypes(), partsList);
+                flattenGenericMap((MultiValuedMap<String, T>) gp.getLinkedTypes(), partsList);
 
               }
 
             } else if (gp.getParamTypeArgs() != null && !gp.getParamTypeArgs().isEmpty()) {
-              flattenGenericMap(gp.getParamTypeArgs(), partsList);
+              flattenGenericMap((MultiValuedMap<String, T>) gp.getParamTypeArgs(), partsList);
 
             }
 
@@ -310,7 +310,7 @@ public class GenericParser {
       GenericParts gp = getGpFromParts(parts, key, index);
 
       GenericArrayType genericArrayType = (GenericArrayType) type;
-      typeToMap(genericArrayType.getGenericComponentType(), genericArrayType.getGenericComponentType().getTypeName());
+      typeToMap(genericArrayType.getGenericComponentType(), genericArrayType.getGenericComponentType().toString());
       gp.arrayType = genericArrayType;
 
     } else if (type instanceof Class) {

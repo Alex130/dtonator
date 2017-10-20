@@ -24,6 +24,18 @@ public class GenericPartsDto implements IGenericParts {
 
   }
 
+  public GenericPartsDto(String typeVar, String operator, String boundClass) {
+    super();
+    this.typeVar = typeVar;
+    this.wildType = typeVar == null;
+    this.operator = operator;
+    this.boundClass = boundClass;
+  }
+
+  public GenericPartsDto(String operator, String boundClass) {
+    this(null, operator, boundClass);
+  }
+
   public GenericPartsDto(GenericParts gp) {
     super();
     if (gp.paramType != null) {

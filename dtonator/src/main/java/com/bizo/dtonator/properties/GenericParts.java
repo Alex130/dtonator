@@ -52,7 +52,7 @@ public class GenericParts implements IGenericParts {
   public String getArrayTypeString() {
     String typeStr = "";
     if (arrayType != null) {
-      typeStr = arrayType.getGenericComponentType().getTypeName();
+      typeStr = arrayType.getGenericComponentType().toString();
     }
     return typeStr;
   }
