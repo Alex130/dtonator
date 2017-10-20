@@ -8,11 +8,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 public class StubTypeOracle implements TypeOracle {
 
   private final Map<String, List<Prop>> properties = new HashMap<String, List<Prop>>();
   private final Map<String, List<String>> enumValues = new HashMap<String, List<String>>();
+  private final Map<String, MultiValuedMap<String, GenericPartsDto>> classTypes = new HashMap<String, MultiValuedMap<String, GenericPartsDto>>();
 
   @Override
   public List<Prop> getProperties(final String className, boolean excludeInherited) {
@@ -44,12 +46,16 @@ public class StubTypeOracle implements TypeOracle {
   }
 
   public void addProperty(final String className, final String name, final String type) {
+    addProperty(className, name, type, false);
+  }
+
+  public void addProperty(final String className, final String name, final String type, final boolean inherited) {
     List<Prop> properties = this.properties.get(className);
     if (properties == null) {
       properties = list();
       this.properties.put(className, properties);
     }
-    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), false, null));
+    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), inherited, null));
   }
 
   public void setProperties(final String className, final List<Prop> properties) {
@@ -60,10 +66,29 @@ public class StubTypeOracle implements TypeOracle {
     this.enumValues.put(className, enumValues);
   }
 
+  public void addClassType(String className, String typeVar, String operator, String boundClass) {
+    MultiValuedMap<String, GenericPartsDto> results;
+    results = classTypes.get(className);
+    if (results == null) {
+      results = new ArrayListValuedHashMap<>();
+      classTypes.put(className, results);
+    }
+
+    GenericPartsDto gp = new GenericPartsDto(typeVar, operator, boundClass);
+    results.put(className, gp);
+
+  }
+
   @Override
   public MultiValuedMap<String, GenericPartsDto> getClassTypes(String className) {
-    // TODO Auto-generated method stub
-    return null;
+
+    MultiValuedMap<String, GenericPartsDto> results;
+    results = classTypes.get(className);
+    if (results == null) {
+      return new ArrayListValuedHashMap<>();
+    } else {
+      return results;
+    }
   }
 
   @Override

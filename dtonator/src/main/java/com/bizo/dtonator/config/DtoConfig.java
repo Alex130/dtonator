@@ -100,7 +100,9 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getAllProperties() {
-    return list(getInheritedProperties()).with(getClassProperties());
+    List<DtoProperty> properties = list();
+    properties.addAll(getAllPropertiesMap().values());
+    return properties;
   }
 
   public Map<String, DtoProperty> getAllPropertiesMap() {

@@ -2,6 +2,7 @@ package com.bizo.dtonator.config;
 
 import static joist.util.Copy.list;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;
@@ -35,7 +36,144 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     // then we have both
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getClassProperties().size(), is(2));
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAllPropertiesForChild() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithList() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "List");
+    oracle.addProperty("com.domain.Bar", "b", "List<java.lang.String>", true);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("List<java.lang.String>"));
+      }
+    }
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithGeneric() {
+    // given two properties
+    oracle.addClassType("com.domain.Foo", "T", "extends", "Number");
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "T");
+    oracle.addProperty("com.domain.Bar", "b", "Integer", true);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("Integer"));
+      }
+    }
+  }
+
+  @Test
+  public void testAllMappedPropertiesForChildWithListOfEntities() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.util.List<com.domain.Child>");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      assertThat(dp.getName(), not("b"));
+
+    }
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAllMappedOverridesForChildWithListOfEntities() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.util.List<com.domain.Child>");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("a, b"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("java.util.List<com.domain.Child>"));
+        assertThat(dp.getDtoType(), is("java.util.ArrayList<com.dto.ChildDto>"));
+      }
+    }
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
+  public void testClassProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("c"));
+  }
+
+  @Test
+  public void testInheritedProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+    for (DtoProperty dp : dc.getInheritedProperties()) {
+      assertThat(dp.getName(), not("c"));
+    }
+    assertThat(dc.getInheritedProperties().size(), is(2));
   }
 
   @Test
@@ -146,7 +284,7 @@ public class DtoConfigTest {
   public void testMappedOverridesFromJavaUtilSet() {
     // given a domain object with some children
     oracle.addProperty("com.domain.Foo", "children", "java.util.Set<Child>");
-    // and an override property of ArrayList
+    // and an override property of HashSet
     addDto("FooDto", domain("Foo"), properties("children HashSet<String>"));
     final DtoConfig dc = rootConfig.getDto("FooDto");
     // then we get the right type
@@ -550,6 +688,10 @@ public class DtoConfigTest {
 
   private static Entry properties(final String value) {
     return new Entry("properties", value);
+  }
+
+  private static Entry extendsDto(final String value) {
+    return new Entry("extends", value);
   }
 
   private static class Entry {
