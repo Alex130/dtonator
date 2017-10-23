@@ -3,6 +3,12 @@ package com.bizo.dtonator.properties;
 import static joist.util.Copy.list;
 
 import java.beans.PropertyDescriptor;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
@@ -12,6 +18,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,12 +28,58 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.reflect.*;
+import org.mozilla.intl.chardet.nsDetector;
+import org.mozilla.intl.chardet.nsICharsetDetectionObserver;
+
+import com.bizo.dtonator.config.RootConfig;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.symbolsolver.javaparser.Navigator;
+import com.github.javaparser.symbolsolver.javaparsermodel.JavaParserFacade;
+
+import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+
+import joist.sourcegen.GClass;
 
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 public class ReflectionTypeOracle implements TypeOracle {
+
+  public List<Prop> parseProperties(RootConfig root, String className) {
+    final List<Prop> ps = list();
+    try {
+      Class<?> clazz = getClass(className);
+
+      File sourceFile = getFile(root.getSourceDirectory(), clazz.getName());
+
+      TypeSolver typeSolver = new CombinedTypeSolver(new ReflectionTypeSolver(), new JavaParserTypeSolver(new File("src/main/java")));
+      CompilationUnit compilationUnit = JavaParser.parse(sourceFile);
+
+      List<MethodDeclaration> methodCalls = Navigator.findAllNodesOfGivenClass(compilationUnit, MethodDeclaration.class);
+
+      for (MethodDeclaration me : methodCalls) {
+        String result = me.getSignature().asString();
+        System.out.println(result);
+      }
+
+      return ps;
+    } catch (final ClassNotFoundException iae) {
+      return list();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      return list();
+    }
+  }
 
   @Override
   public List<Prop> getProperties(final String className, boolean excludeInherited) {
@@ -36,8 +91,10 @@ public class ReflectionTypeOracle implements TypeOracle {
   public List<Prop> getProperties(String className, boolean excludeInherited, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
+
     try {
       Class<?> clazz = getClass(className);
+
       for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
         if (pd.getName().equals("class") || pd.getName().equals("declaringClass")) {
           continue;
@@ -51,14 +108,18 @@ public class ReflectionTypeOracle implements TypeOracle {
         MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
         if (pd.getReadMethod() != null) {
 
-          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())) {
+          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())
+            || pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
             type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+
           }
 
           if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
+
             genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
 
           }
+
         }
         ps.add(new Prop( //
           pd.getName(),
@@ -71,9 +132,11 @@ public class ReflectionTypeOracle implements TypeOracle {
       }
 
       return ps;
+
     } catch (final ClassNotFoundException iae) {
       return list();
     }
+
   }
 
   private boolean includeAnnotatedField(Class<?> clazz, PropertyDescriptor pd, List<String> excludedAnnotations) throws ClassNotFoundException {
@@ -179,5 +242,13 @@ public class ReflectionTypeOracle implements TypeOracle {
       throw new ClassNotFoundException();
     }
 
+  }
+
+  private static File getFile(String directory, GClass gc) {
+    return getFile(directory, gc.getFullName());
+  }
+
+  private static File getFile(String directory, String fullClassName) {
+    return new File(directory, fullClassName.replace('.', File.separatorChar) + ".java");
   }
 }

@@ -151,13 +151,51 @@ public class DtoConfig {
   }
 
   /** @return the generic types this DTO  should define. */
-  public List<String> getGenericTypes() {
-    final List<String> types = list();
+  public List<GenericPartsDto> getGenericClassTypes() {
+    final List<GenericPartsDto> parts = list();
     if (map.containsKey("types")) {
-      types.addAll(list(((String) map.get("types")).split(", ?")));
+      List<String> types = list(((String) map.get("types")).split(", ?"));
+      if (types != null) {
+        for (String type : types) {
+          String[] splitTypes = type.split(" ");
+          if (splitTypes != null && splitTypes.length > 0) {
+            GenericPartsDto gp = new GenericPartsDto();
+            gp.typeVar = splitTypes[0];
+            String boundType = "";
+            if (splitTypes.length > 2) {
+              gp.operator = splitTypes[1];
+              boundType = splitTypes[2];
+
+            } else {
+              gp.operator = "extends";
+              boundType = splitTypes[1];
+
+            }
+            if (root.getDto(boundType) != null) {
+              // the type was FooDto, we need to fully qualify it
+              gp.boundClass = root.getDto(boundType).getDtoType();
+            } else {
+              gp.boundClass = boundType;
+            }
+            parts.add(gp);
+          }
+        }
+      }
     }
 
-    return types;
+    return parts;
+  }
+
+  private String findGenericType(String typeVar) {
+    String result = null;
+    if (getGenericClassTypes() != null) {
+      for (GenericPartsDto gp : getGenericClassTypes()) {
+        if (typeVar.equals(gp.getTypeVarString())) {
+          return gp.getBoundClassString();
+        }
+      }
+    }
+    return result;
   }
 
   public String getClassTypesString() {
@@ -372,7 +410,7 @@ public class DtoConfig {
         continue;
       }
       final boolean hasGetterSetter = p.getGetterMethodName() != null && p.getSetterNameMethod() != null;
-      final boolean isDomainObject = isEntity(oracle, p.type);
+      final boolean isDomainObject = isEntity(root, oracle, p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
@@ -450,7 +488,9 @@ public class DtoConfig {
           dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pcType) + ">";
         } else {
           dtoType = pcType;
+
           extension = !dtoType.equals(domainType);
+
         }
 
         // TODO pc.type might ValueType (client-side), need to fully quality it?
@@ -575,7 +615,7 @@ public class DtoConfig {
         guessGenericDtos(gp.getLinkedTypes());
       }
 
-      if (gp.boundClass != null && isEntity(oracle, gp.boundClass)) {
+      if (gp.boundClass != null && isEntity(root, oracle, gp.boundClass)) {
         gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
       }
     }
@@ -852,7 +892,7 @@ public class DtoConfig {
     return false;
   }
 
-  static boolean isEntity(final TypeOracle oracle, final String type) {
+  static boolean isEntity(final RootConfig config, final TypeOracle oracle, final String type) {
     for (final Prop p : oracle.getProperties(type, false)) {
       if (p.name.equals("id") && p.type.equals("java.lang.Long")) {
         return true;

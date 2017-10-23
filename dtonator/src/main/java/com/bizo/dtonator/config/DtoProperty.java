@@ -67,7 +67,7 @@ public class DtoProperty {
   }
 
   public boolean isEntity() {
-    return DtoConfig.isEntity(oracle, domainType);
+    return DtoConfig.isEntity(config, oracle, domainType);
   }
 
   public boolean isGenericType() {

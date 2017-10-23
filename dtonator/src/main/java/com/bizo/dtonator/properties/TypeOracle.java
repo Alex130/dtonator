@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.apache.commons.collections4.MultiValuedMap;
 
+import com.bizo.dtonator.config.RootConfig;
+
 /**
  * Abstracts finding metadata about classes.
  * 

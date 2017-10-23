@@ -3,144 +3,41 @@ package com.bizo.dtonator.properties;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.bizo.dtonator.config.RootConfig;
+import com.bizo.dtonator.domain.Child;
+import com.bizo.dtonator.domain.ChildGeneric;
+import com.bizo.dtonator.domain.ParentGeneric;
+import com.bizo.dtonator.domain.Sibling;
+import com.bizo.dtonator.domain.Sister;
+
 public class ReflectionTypeOracleTest {
 
-  private class Parent {
+  private ReflectionTypeOracle oracle = new ReflectionTypeOracle();
 
-    Long id;
-    String name;
-    List<Sibling> siblings;
-
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public List<Sibling> getSiblings() {
-      return siblings;
-    }
-
-    public void setSiblings(List<Sibling> siblings) {
-      this.siblings = siblings;
-    }
-
-    public Long getId() {
-      return id;
-    }
-  }
-
-  private class Child extends Parent {
-
-    String birthday;
-
-    public String getBirthday() {
-      return birthday;
-    }
-
-    public void setBirthday(String birthday) {
-      this.birthday = birthday;
-    }
-
-  }
-
-  private class Sibling {
-    Long id;
-
-    String gender;
-
-    public String getGender() {
-      return gender;
-    }
-
-    public void setGender(String gender) {
-      this.gender = gender;
-    }
-  }
-
-  /************************
-   * Generic Classes
-   * @param <T>
-   ***********************/
-  private class ParentGeneric<T extends SiblingGeneric> {
-
-    Long id;
-    String name;
-    List<T> siblings;
-
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public List<T> getSiblings() {
-      return siblings;
-    }
-
-    public void setSiblings(List<T> siblings) {
-      this.siblings = siblings;
-    }
-
-    public Long getId() {
-      return id;
-    }
-  }
-
-  private class ChildGeneric extends ParentGeneric<Sister> {
-
-    String birthday;
-
-    public String getBirthday() {
-      return birthday;
-    }
-
-    public void setBirthday(String birthday) {
-      this.birthday = birthday;
-    }
-
-  }
-
-  private class SiblingGeneric {
-    Long id;
-
-    String gender;
-
-    public String getGender() {
-      return gender;
-    }
-
-    public void setGender(String gender) {
-      this.gender = gender;
-    }
-  }
-
-  private class Sister extends SiblingGeneric {
-    Integer age;
-
-    public Integer getAge() {
-      return age;
-    }
-
-    public void setAge(Integer age) {
-      this.age = age;
-    }
-  }
-
-  private ReflectionTypeOracle oracle;
+  private final Map<String, Object> root = new HashMap<String, Object>();
+  private final RootConfig rootConfig = new RootConfig(oracle, root);
+  private final Map<String, Object> config = new HashMap<String, Object>();
 
   @Before
   public void setup() {
-    oracle = new ReflectionTypeOracle();
+
+    config.put("domainPackage", "com.bizo.dtonator.properties");
+    config.put("dtoPackage", "com.dto");
+    config.put("sourceDirectory", "src/test/java");
+    root.put("config", config);
+  }
+
+  @Test
+  public void testParseProperties() {
+    List<Prop> properties = oracle.parseProperties(rootConfig, Child.class.getName());
+    assertNotNull(properties);
   }
 
   @Test
@@ -150,15 +47,23 @@ public class ReflectionTypeOracleTest {
 
     assertNotNull(properties);
     Prop siblingsProp = null;
+    Prop eldestProp = null;
     for (Prop p : properties) {
       if ("siblings".equals(p.name)) {
         siblingsProp = p;
-        break;
+
+      }
+
+      if ("eldestSibling".equals(p.name)) {
+        eldestProp = p;
+
       }
     }
     assertNotNull(siblingsProp);
     assertThat(siblingsProp.type, is("java.util.List<" + Sibling.class.getName() + ">"));
-    assertThat(properties.size(), is(4));
+    assertNotNull(eldestProp);
+    assertThat(eldestProp.type, is("com.bizo.dtonator.domain.Sibling"));
+    assertThat(properties.size(), is(5));
 
   }
 
@@ -169,15 +74,62 @@ public class ReflectionTypeOracleTest {
 
     assertNotNull(properties);
     Prop siblingsProp = null;
+    Prop stepSiblingsProp = null;
+    Prop eldestProp = null;
     for (Prop p : properties) {
       if ("siblings".equals(p.name)) {
         siblingsProp = p;
-        break;
+
+      }
+      if ("stepSiblings".equals(p.name)) {
+        stepSiblingsProp = p;
+
+      }
+      if ("eldestSibling".equals(p.name)) {
+        eldestProp = p;
+
       }
     }
     assertNotNull(siblingsProp);
-    assertThat(siblingsProp.type, is("java.util.List<" + Sister.class.getName() + ">"));
-    assertThat(properties.size(), is(4));
+    assertThat(siblingsProp.type, is("java.util.List<T>"));
+    assertNotNull(stepSiblingsProp);
+    assertThat(stepSiblingsProp.type, is("java.util.List<" + Sister.class.getName() + ">"));
+    assertNotNull(eldestProp);
+    assertThat(eldestProp.type, is("com.bizo.dtonator.domain.Sister"));
+    assertThat(properties.size(), is(7));
+
+  }
+
+  @Test
+  public void testGetPropertiesForParentGeneric() {
+
+    List<Prop> properties = oracle.getProperties(ParentGeneric.class.getName(), true);
+
+    assertNotNull(properties);
+    Prop siblingsProp = null;
+    Prop stepSiblingsProp = null;
+    Prop eldestProp = null;
+    for (Prop p : properties) {
+      if ("siblings".equals(p.name)) {
+        siblingsProp = p;
+
+      }
+      if ("stepSiblings".equals(p.name)) {
+        stepSiblingsProp = p;
+
+      }
+      if ("eldestSibling".equals(p.name)) {
+        eldestProp = p;
+
+      }
+    }
+    assertNotNull(siblingsProp);
+    assertThat(siblingsProp.type, is("java.util.List<T>"));
+    assertNotNull(stepSiblingsProp);
+    assertThat(stepSiblingsProp.type, is("java.util.List<T>"));
+    assertNotNull(eldestProp);
+    assertThat(eldestProp.type, is("T"));
+    assertThat(properties.size(), is(6));
 
   }
 }
