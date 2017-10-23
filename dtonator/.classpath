@@ -4,5 +4,6 @@
 	<classpathentry kind="src" path="src/test/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8/"/>
 	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
+	<classpathentry kind="lib" path="/media/psf/Home/Documents/workspace/optics/jchardet-1.1/jchardet-1.1/dist/lib/chardet.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
