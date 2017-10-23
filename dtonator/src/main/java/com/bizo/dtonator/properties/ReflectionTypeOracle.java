@@ -12,6 +12,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +39,7 @@ public class ReflectionTypeOracle implements TypeOracle {
   public List<Prop> getProperties(String className, boolean excludeInherited, List<String> excludedAnnotations) {
     // Do we have to sort these for determinism?
     final List<Prop> ps = list();
+
     try {
       Class<?> clazz = getClass(className);
       for (final PropertyDescriptor pd : PropertyUtils.getPropertyDescriptors(getClass(className))) {
@@ -51,14 +55,18 @@ public class ReflectionTypeOracle implements TypeOracle {
         MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
         if (pd.getReadMethod() != null) {
 
-          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())) {
+          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())
+            || pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
             type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+
           }
 
           if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
+
             genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
 
           }
+
         }
         ps.add(new Prop( //
           pd.getName(),
@@ -71,9 +79,11 @@ public class ReflectionTypeOracle implements TypeOracle {
       }
 
       return ps;
+
     } catch (final ClassNotFoundException iae) {
       return list();
     }
+
   }
 
   private boolean includeAnnotatedField(Class<?> clazz, PropertyDescriptor pd, List<String> excludedAnnotations) throws ClassNotFoundException {

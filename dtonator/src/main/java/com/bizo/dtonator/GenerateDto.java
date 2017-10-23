@@ -222,15 +222,15 @@ public class GenerateDto {
     }
 
     String dtoType = mapperInterface(config, dto);
-    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
-      dtoType = dtoType + "<" + dto.getGenericTypeParametersString() + ">";
+    if (dto.getClassTypesString() != null) {
+      dtoType = dtoType + "<" + dto.getClassTypesString() + ">";
     }
     final GClass mb = out.getClass(dtoType).setInterface();
 
-    if (dto.getGenericTypeParameters() != null && !dto.getGenericTypeParameters().isEmpty()) {
-      for (GenericPartsDto type : dto.getGenericTypeParameters().values()) {
-        if (type.getParamTypeString() != null && !type.getParamTypeString().isEmpty())
-          mb.stripAndImportPackageIfPossible(type.getParamTypeString());
+    if (dto.getGenericClassTypes() != null && !dto.getGenericClassTypes().isEmpty()) {
+      for (GenericPartsDto type : dto.getGenericClassTypes()) {
+
+        mb.stripAndImportPackageIfPossible(type.getBoundClassString());
       }
     }
 

@@ -151,13 +151,51 @@ public class DtoConfig {
   }
 
   /** @return the generic types this DTO  should define. */
-  public List<String> getGenericTypes() {
-    final List<String> types = list();
+  public List<GenericPartsDto> getGenericClassTypes() {
+    final List<GenericPartsDto> parts = list();
     if (map.containsKey("types")) {
-      types.addAll(list(((String) map.get("types")).split(", ?")));
+      List<String> types = list(((String) map.get("types")).split(", ?"));
+      if (types != null) {
+        for (String type : types) {
+          String[] splitTypes = type.split(" ");
+          if (splitTypes != null && splitTypes.length > 0) {
+            GenericPartsDto gp = new GenericPartsDto();
+            gp.typeVar = splitTypes[0];
+            String boundType = "";
+            if (splitTypes.length > 2) {
+              gp.operator = splitTypes[1];
+              boundType = splitTypes[2];
+
+            } else {
+              gp.operator = "extends";
+              boundType = splitTypes[1];
+
+            }
+            if (root.getDto(boundType) != null) {
+              // the type was FooDto, we need to fully qualify it
+              gp.boundClass = root.getDto(boundType).getDtoType();
+            } else {
+              gp.boundClass = boundType;
+            }
+            parts.add(gp);
+          }
+        }
+      }
     }
 
-    return types;
+    return parts;
+  }
+
+  private String findGenericType(String typeVar) {
+    String result = null;
+    if (getGenericClassTypes() != null) {
+      for (GenericPartsDto gp : getGenericClassTypes()) {
+        if (typeVar.equals(gp.getTypeVarString())) {
+          return gp.getBoundClassString();
+        }
+      }
+    }
+    return result;
   }
 
   public String getClassTypesString() {
@@ -450,7 +488,9 @@ public class DtoConfig {
           dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pcType) + ">";
         } else {
           dtoType = pcType;
+
           extension = !dtoType.equals(domainType);
+
         }
 
         // TODO pc.type might ValueType (client-side), need to fully quality it?
