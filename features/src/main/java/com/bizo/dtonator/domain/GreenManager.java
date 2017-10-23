@@ -24,11 +24,12 @@ public class GreenManager extends AbstractManager<GreenAccount, GreenAccount> {
   }
 
   public List<GreenAccount> getManagedAccounts() {
-    return managedAccounts;
+
+    return super.getManagedAccounts();
   }
 
   public void setManagedAccounts(List<GreenAccount> managedAccounts) {
-    this.managedAccounts = managedAccounts;
+    super.setManagedAccounts(managedAccounts);
   }
 
 }

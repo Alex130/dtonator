@@ -12,7 +12,7 @@ public abstract class AbstractManager<T extends Account, V extends Account> {
 
   private int employees;
 
-  protected List<V> managedAccounts;
+  private List<V> managedAccounts;
 
   public AbstractManager() {
   }
