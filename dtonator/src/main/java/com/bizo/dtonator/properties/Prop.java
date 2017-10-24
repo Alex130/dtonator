@@ -13,6 +13,7 @@ public class Prop {
   private final String getterMethodName;
   private final String setterNameMethod;
   public final boolean inherited;
+  public final boolean isAbstract;
   private final MultiValuedMap<String, GenericParts> genericTypes;
 
   public Prop(
@@ -22,6 +23,7 @@ public class Prop {
     String getterMethodName,
     String setterNameMethod,
     boolean inherited,
+    boolean isAbstract,
     MultiValuedMap<String, GenericParts> genericTypes) {
     super();
     this.name = name;
@@ -30,6 +32,7 @@ public class Prop {
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
     this.inherited = inherited;
+    this.isAbstract = isAbstract;
     this.genericTypes = genericTypes;
 
   }

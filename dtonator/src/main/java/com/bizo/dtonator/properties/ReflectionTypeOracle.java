@@ -17,11 +17,16 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.reflect.*;
+
+import ru.vyarus.java.generics.resolver.GenericsResolver;
+import ru.vyarus.java.generics.resolver.context.GenericsContext;
+import ru.vyarus.java.generics.resolver.util.NoGenericException;
 
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.collections4.MultiValuedMap;
@@ -51,22 +56,38 @@ public class ReflectionTypeOracle implements TypeOracle {
           continue;
         }
 
+        boolean isAbstract = false;
         String type = pd.getPropertyType().getName();
         MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
         if (pd.getReadMethod() != null) {
 
-          if (getClass(className).equals(pd.getReadMethod().getDeclaringClass())
-            || pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
-            type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "");
+          if (clazz.equals(pd.getReadMethod().getDeclaringClass()) || pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
+
+            type = pd.getReadMethod().getGenericReturnType().toString().replaceAll("^class ", "").replaceAll("^interface ", "");
 
           }
 
           if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
 
+            System.out.println(pd.getName() + " Resolving from " + clazz + " to " + pd.getReadMethod().getDeclaringClass().toString());
+            GenericsContext context = GenericsResolver.resolve(clazz).type(pd.getReadMethod().getDeclaringClass());
+            Class outer = context.resolveClass(pd.getReadMethod().getGenericReturnType());
+            Class inner = null;
+            if (!clazz.equals(pd.getReadMethod().getDeclaringClass()) && pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
+              System.out.println("Resolving generic...");
+              inner = context.resolveGenericOf(pd.getReadMethod().getGenericReturnType());
+
+              String outerString = outer.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
+              String innerString = inner.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
+              type = outerString + "<" + innerString + ">";
+            }
+            System.out.println("Resolved outer " + outer + ", inner " + inner);
+            System.out.println("");
             genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
 
           }
 
+          isAbstract = Modifier.isAbstract(pd.getReadMethod().getModifiers());
         }
         ps.add(new Prop( //
           pd.getName(),
@@ -75,12 +96,21 @@ public class ReflectionTypeOracle implements TypeOracle {
           pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
           pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
           excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
+          isAbstract,
           genericMethodMap));
       }
 
       return ps;
 
     } catch (final ClassNotFoundException iae) {
+      return list();
+    } catch (SecurityException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      return list();
+    } catch (NoGenericException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
       return list();
     }
 

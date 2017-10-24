@@ -1,6 +1,7 @@
 package com.bizo.dtonator.domain;
 
 import java.util.List;
+import java.util.Set;
 
 public class ChildGeneric extends ParentGeneric<Sister> {
 
@@ -15,13 +16,13 @@ public class ChildGeneric extends ParentGeneric<Sister> {
   }
 
   @Override
-  public List<Sister> getStepSiblings() {
+  public Set<Sister> getStepSiblings() {
 
     return super.getStepSiblings();
   }
 
   @Override
-  public void setStepSiblings(List<Sister> stepSiblings) {
+  public void setStepSiblings(Set<Sister> stepSiblings) {
 
     super.setStepSiblings(stepSiblings);
   }

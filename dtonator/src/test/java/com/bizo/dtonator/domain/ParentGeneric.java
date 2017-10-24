@@ -1,6 +1,7 @@
 package com.bizo.dtonator.domain;
 
 import java.util.List;
+import java.util.Set;
 
 public class ParentGeneric<T extends SiblingGeneric> {
 
@@ -8,8 +9,8 @@ public class ParentGeneric<T extends SiblingGeneric> {
   String name;
   T eldestSibling;
   T eldestStep;
-  List<T> siblings;
-  List<T> stepSiblings;
+  public List<T> siblings;
+  public Set<T> stepSiblings;
 
   public String getName() {
     return name;
@@ -39,11 +40,11 @@ public class ParentGeneric<T extends SiblingGeneric> {
     this.eldestSibling = eldestSibling;
   }
 
-  public List<T> getStepSiblings() {
+  public Set<T> getStepSiblings() {
     return stepSiblings;
   }
 
-  public void setStepSiblings(List<T> stepSiblings) {
+  public void setStepSiblings(Set<T> stepSiblings) {
     this.stepSiblings = stepSiblings;
   }
 

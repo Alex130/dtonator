@@ -2,20 +2,12 @@ package com.bizo.dtonator.domain;
 
 import java.util.List;
 
-public class Parent {
+public class Parent extends AbstractParent {
 
   Long id;
-  String name;
+
   Sibling eldestSibling;
   List<Sibling> siblings;
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
 
   public List<Sibling> getSiblings() {
     return siblings;
@@ -25,6 +17,7 @@ public class Parent {
     this.siblings = siblings;
   }
 
+  @Override
   public Long getId() {
     return id;
   }
@@ -35,6 +28,11 @@ public class Parent {
 
   public void setEldestSibling(Sibling eldestSibling) {
     this.eldestSibling = eldestSibling;
+  }
+
+  @Override
+  public void setId(Long id) {
+    this.id = id;
   }
 
 }

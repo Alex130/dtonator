@@ -32,6 +32,7 @@ dependencies {
   compile 'commons-beanutils:commons-beanutils:1.8.2'
   compile 'org.yaml:snakeyaml:1.8'
   compile 'joist:joist-util:1.9.1'
+  compile 'ru.vyarus:generics-resolver:2.0.1'
   testCompile 'junit:junit:4.12'
   testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
   deployerJars 'org.apache.maven.wagon:wagon-ssh:2.6'

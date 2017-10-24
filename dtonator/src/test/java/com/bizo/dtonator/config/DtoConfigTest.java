@@ -4,6 +4,7 @@ import static joist.util.Copy.list;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class DtoConfigTest {
     // given two properties
     oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
     oracle.addProperty("com.domain.Foo", "b", "List");
-    oracle.addProperty("com.domain.Bar", "b", "List<java.lang.String>", true);
+    oracle.addProperty("com.domain.Bar", "b", "List<java.lang.String>", true, false);
     oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
     // and no overrides
     addDto("FooDto", domain("Foo"), properties("*"));
@@ -81,7 +82,7 @@ public class DtoConfigTest {
     oracle.addClassType("com.domain.Foo", "T", "extends", "Number");
     oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
     oracle.addProperty("com.domain.Foo", "b", "T");
-    oracle.addProperty("com.domain.Bar", "b", "Integer", true);
+    oracle.addProperty("com.domain.Bar", "b", "Integer", true, false);
     oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
     // and no overrides
     addDto("FooDto", domain("Foo"), properties("*"));
@@ -110,6 +111,46 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
     // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      assertThat(dp.getName(), not("b"));
+
+    }
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAbstractProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.Long", false, true);
+
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    // then b should be marked as abstract and excluded
+    final DtoConfig dc = rootConfig.getDto("FooDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+
+      assertThat(dp.getName(), not("b"));
+      assertFalse(dp.isAbstract());
+
+    }
+    assertThat(dc.getAllProperties().size(), is(1));
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithAbstractParent() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.Long", false, true);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then abstract properties should be excluded
     final DtoConfig dc = rootConfig.getDto("BarDto");
 
     for (DtoProperty dp : dc.getAllProperties()) {

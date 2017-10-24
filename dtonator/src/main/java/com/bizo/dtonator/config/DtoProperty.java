@@ -26,6 +26,7 @@ public class DtoProperty {
   private final String setterNameMethod;
   private final boolean inherited;
   private final String genericDomainType;
+  private final boolean isAbstract;
 
   public DtoProperty(
     final TypeOracle oracle,
@@ -39,6 +40,7 @@ public class DtoProperty {
     final String getterMethodName,
     final String setterNameMethod,
     final boolean inherited,
+    final boolean isAbstract,
     final String genericDomainType) {
     this.oracle = oracle;
     this.config = config;
@@ -51,6 +53,7 @@ public class DtoProperty {
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
     this.inherited = inherited;
+    this.isAbstract = isAbstract;
     this.genericDomainType = genericDomainType;
   }
 
@@ -174,6 +177,10 @@ public class DtoProperty {
 
   public boolean isInherited() {
     return inherited;
+  }
+
+  public boolean isAbstract() {
+    return isAbstract;
   }
 
 }

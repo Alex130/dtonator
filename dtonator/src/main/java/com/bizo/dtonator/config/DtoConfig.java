@@ -71,7 +71,7 @@ public class DtoConfig {
       @Override
       public boolean evaluate(DtoProperty t) {
 
-        return !t.isInherited();
+        return !t.isInherited() && !t.isAbstract();
       }
     };
 
@@ -110,8 +110,11 @@ public class DtoConfig {
     for (DtoProperty p : getInheritedProperties()) {
       map.put(p.getName(), p);
     }
+
     for (DtoProperty p : getProperties()) {
-      map.put(p.getName(), p);
+      if (!p.isAbstract()) {
+        map.put(p.getName(), p);
+      }
     }
     return map;
   }
@@ -427,6 +430,7 @@ public class DtoConfig {
           p.getGetterMethodName(),
           p.getSetterNameMethod(),
           p.inherited,
+          p.isAbstract,
           null));
       }
     }
@@ -459,6 +463,7 @@ public class DtoConfig {
 
       final String dtoType;
       String genericDomainType = null;
+      genericDomainType = findMappedTypeForProperty(domainType, p.getGenericTypes());
 
       if (pc != null && pc.type != null) {
         String pcType = pc.type;
@@ -560,8 +565,6 @@ public class DtoConfig {
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
 
-      genericDomainType = findMappedTypeForProperty(domainType, p.getGenericTypes());
-
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -574,6 +577,7 @@ public class DtoConfig {
         extension ? null : p.getGetterMethodName(),
         extension ? null : p.getSetterNameMethod(),
         p.inherited,
+        p.isAbstract,
         genericDomainType));
 
     }
@@ -676,6 +680,7 @@ public class DtoConfig {
         domainType,
         null,
         null,
+        false,
         false,
         null));
     }

@@ -4,8 +4,10 @@ import static joist.util.Copy.list;
 import static org.apache.commons.lang.StringUtils.capitalize;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
@@ -14,6 +16,7 @@ public class StubTypeOracle implements TypeOracle {
 
   private final Map<String, List<Prop>> properties = new HashMap<String, List<Prop>>();
   private final Map<String, List<String>> enumValues = new HashMap<String, List<String>>();
+  private final Set<String> abstractDomains = new HashSet<String>();
   private final Map<String, MultiValuedMap<String, GenericPartsDto>> classTypes = new HashMap<String, MultiValuedMap<String, GenericPartsDto>>();
 
   @Override
@@ -37,7 +40,7 @@ public class StubTypeOracle implements TypeOracle {
 
   @Override
   public boolean isAbstract(String className) {
-    return false;
+    return abstractDomains.contains(className);
   }
 
   @Override
@@ -46,16 +49,16 @@ public class StubTypeOracle implements TypeOracle {
   }
 
   public void addProperty(final String className, final String name, final String type) {
-    addProperty(className, name, type, false);
+    addProperty(className, name, type, false, false);
   }
 
-  public void addProperty(final String className, final String name, final String type, final boolean inherited) {
+  public void addProperty(final String className, final String name, final String type, final boolean inherited, final boolean isAbstract) {
     List<Prop> properties = this.properties.get(className);
     if (properties == null) {
       properties = list();
       this.properties.put(className, properties);
     }
-    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), inherited, null));
+    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), inherited, isAbstract, null));
   }
 
   public void setProperties(final String className, final List<Prop> properties) {
@@ -64,6 +67,10 @@ public class StubTypeOracle implements TypeOracle {
 
   public void setEnumValues(final String className, final List<String> enumValues) {
     this.enumValues.put(className, enumValues);
+  }
+
+  public void addAbstractDomain(String className) {
+    this.abstractDomains.add(className);
   }
 
   public void addClassType(String className, String typeVar, String operator, String boundClass) {
