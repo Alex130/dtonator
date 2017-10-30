@@ -1,5 +1,7 @@
 package com.bizo.dtonator.domain;
 
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.Date;
 
 public class Child extends Parent {
@@ -15,6 +17,12 @@ public class Child extends Parent {
   }
 
   public Date convertBirthday() {
-    return new Date(birthday);
+    try {
+      return DateFormat.getDateInstance().parse(birthday);
+    } catch (ParseException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      return null;
+    }
   }
 }

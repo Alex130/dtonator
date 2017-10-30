@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.io.Closeable;
+import java.io.DataInput;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -58,7 +60,7 @@ public class MethodReturnTypeTest<U extends Number> {
     //    return null;
     //  }
 
-    public <Q extends List & Set> Q multiType() {
+    public <Q extends DataInput & Closeable> Q multiType() {
       return null;
     }
 

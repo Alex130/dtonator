@@ -1,6 +1,5 @@
 package com.bizo.dtonator.domain;
 
-import java.util.List;
 import java.util.Set;
 
 public class ChildGeneric extends ParentGeneric<Sister> {
@@ -29,13 +28,13 @@ public class ChildGeneric extends ParentGeneric<Sister> {
 
   @Override
   public Sister getEldestStep() {
-    // TODO Auto-generated method stub
+
     return super.getEldestStep();
   }
 
   @Override
   public void setEldestStep(Sister eldestStep) {
-    // TODO Auto-generated method stub
+
     super.setEldestStep(eldestStep);
   }
 

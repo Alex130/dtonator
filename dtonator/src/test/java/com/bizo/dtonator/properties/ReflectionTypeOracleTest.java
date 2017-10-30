@@ -124,9 +124,9 @@ public class ReflectionTypeOracleTest {
       }
     }
     assertNotNull(siblingsProp);
-    assertThat(siblingsProp.type, is("java.util.List<T>"));
+    assertThat(siblingsProp.type, is("java.util.List<" + Sister.class.getName() + ">"));
     assertNotNull(stepSiblingsProp);
-    assertThat(stepSiblingsProp.type, is("java.util.List<" + Sister.class.getName() + ">"));
+    assertThat(stepSiblingsProp.type, is("java.util.Set<" + Sister.class.getName() + ">"));
     assertNotNull(eldestProp);
     assertThat(eldestProp.type, is("com.bizo.dtonator.domain.Sister"));
     assertThat(properties.size(), is(7));
@@ -159,7 +159,7 @@ public class ReflectionTypeOracleTest {
     assertNotNull(siblingsProp);
     assertThat(siblingsProp.type, is("java.util.List<T>"));
     assertNotNull(stepSiblingsProp);
-    assertThat(stepSiblingsProp.type, is("java.util.List<T>"));
+    assertThat(stepSiblingsProp.type, is("java.util.Set<T>"));
     assertNotNull(eldestProp);
     assertThat(eldestProp.type, is("T"));
     assertThat(properties.size(), is(6));
