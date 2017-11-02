@@ -22,6 +22,11 @@ InternDto:
   domain: Intern
   extends: EmployeeDto
   properties: '*'
+  
+#testing property exclusion
+EmployerNoNameDto:
+  domain: Employer
+  properties: -name, *
  
 # testing a list of ids
 EmployeeWithAccountIdsDto:
