@@ -281,6 +281,9 @@ public class GenerateDto {
       if (dp.isExtension()) {
         // delegate to the user's mapper method for this property
         toDto.body.line("_ {}.{}(this, o),", mapperFieldName(dp.getDto()), extensionGetter(dp));
+      } else if (dp.getGetterMethodName() == null) {
+
+        toDto.body.line("_ null,");
       } else if (dp.isValueType()) {
         // delegate to the user type mapper for this property
         toDto.body.line(
