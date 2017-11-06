@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import com.bizo.dtonator.config.RootConfig;
 import com.bizo.dtonator.domain.AbstractParent;
-
+import com.bizo.dtonator.domain.Brother;
 import com.bizo.dtonator.domain.Child;
 import com.bizo.dtonator.domain.ChildGeneric;
 import com.bizo.dtonator.domain.ParentGeneric;
@@ -192,6 +192,30 @@ public class ReflectionTypeOracleTest {
     assertNotNull(idProp);
     assertTrue(idProp.isAbstract);
     assertThat(properties.size(), is(2));
+
+  }
+
+  @Test
+  public void testGeneratorPropertiesIncluded() {
+    List<Prop> properties = oracle.getProperties(Brother.class.getName(), true);
+
+    assertNotNull(properties);
+
+    Prop genderProp = null;
+    Prop siblingIdsProp = null;
+    for (Prop p : properties) {
+      if ("gender".equals(p.name)) {
+        genderProp = p;
+
+      }
+      if ("siblingIds".equals(p.name)) {
+        siblingIdsProp = p;
+      }
+
+    }
+    assertNotNull(genderProp);
+    assertNotNull(siblingIdsProp);
+    assertThat(properties.size(), is(3));
 
   }
 }
