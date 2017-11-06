@@ -1,6 +1,6 @@
 package com.bizo.dtonator.domain;
 
-public class Employer {
+public class Employer implements HasId {
 
   private Long id;
   private String name;

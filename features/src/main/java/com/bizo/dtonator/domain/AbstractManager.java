@@ -1,6 +1,7 @@
 package com.bizo.dtonator.domain;
 
 import java.util.List;
+import java.util.Set;
 
 public abstract class AbstractManager<T extends Account, V extends Account> {
 
@@ -60,6 +61,10 @@ public abstract class AbstractManager<T extends Account, V extends Account> {
 
   public void setManagedAccounts(List<V> managedAccounts) {
     this.managedAccounts = managedAccounts;
+  }
+
+  public Set<Long> getManagedAccountIds() {
+    return null;
   }
 
 }
