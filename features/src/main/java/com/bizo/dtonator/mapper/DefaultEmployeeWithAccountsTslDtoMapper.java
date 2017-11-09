@@ -1,6 +1,7 @@
 package com.bizo.dtonator.mapper;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import com.bizo.dtonator.domain.Employee;
 import com.bizo.dtonator.dtos.EmployeeAccountTslDto;
@@ -13,7 +14,7 @@ public class DefaultEmployeeWithAccountsTslDtoMapper implements EmployeeWithAcco
   }
 
   @Override
-  public void setOtherAccounts(final Mapper m, final Employee employee, final ArrayList<EmployeeAccountTslDto> otherAccounts) {
+  public void setOtherAccounts(final Mapper m, final Employee employee, final List<EmployeeAccountTslDto> otherAccounts) {
   }
 
 }
