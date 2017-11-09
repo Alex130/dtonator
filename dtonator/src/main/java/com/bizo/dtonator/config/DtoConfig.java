@@ -475,10 +475,10 @@ public class DtoConfig {
           dtoType = root.getDto(pcType).getDtoType();
         } else if (isListOfDtos(root, pcType)) {
           // the type was java.util.ArrayList<FooDto>, resolve the dto package
-          dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+          dtoType = "java.util.List<" + root.getDtoPackage() + "." + listType(pcType) + ">";
         } else if (isSetOfDtos(root, pcType)) {
           // the type was java.util.HashSet<FooDto>, resolve the dto package
-          dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+          dtoType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pcType) + ">";
         } else {
           dtoType = pcType;
 
