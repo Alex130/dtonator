@@ -648,7 +648,7 @@ public class DtoConfigTest {
     assertThat(dc.getClassProperties().size(), is(1));
     assertThat(dc.getClassProperties().get(0).getName(), is("children"));
     assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.List<com.domain.Child>"));
-    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.ArrayList<com.dto.ChildDto>"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.List<com.dto.ChildDto>"));
   }
 
   @Test
