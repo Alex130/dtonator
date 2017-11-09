@@ -189,18 +189,6 @@ public class DtoConfig {
     return parts;
   }
 
-  private String findGenericType(String typeVar) {
-    String result = null;
-    if (getGenericClassTypes() != null) {
-      for (GenericPartsDto gp : getGenericClassTypes()) {
-        if (typeVar.equals(gp.getTypeVarString())) {
-          return gp.getBoundClassString();
-        }
-      }
-    }
-    return result;
-  }
-
   public String getClassTypesString() {
     if (map.containsKey("types")) {
       return (String) map.get("types");
@@ -535,14 +523,14 @@ public class DtoConfig {
         } else if (isListOfEntities(root, domainType)) {
           // only map lists of entities if it was included in properties
           if (pc != null) {
-            dtoType = "java.util.ArrayList<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
+            dtoType = "java.util.List<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
         } else if (isSetOfEntities(root, domainType)) {
           // only map lists of entities if it was included in properties
           if (pc != null) {
-            dtoType = "java.util.HashSet<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
+            dtoType = "java.util.Set<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
@@ -649,12 +637,12 @@ public class DtoConfig {
         domainType = dtoType;
       } else if (isListOfDtos(root, pc.type)) {
         // the type was java.util.ArrayList<FooDto>, resolve the dto package
-        dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        dtoType = "java.util.List<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
         // loosen the type to List, otherwise the user still has to provide the dtos themselves
         domainType = "java.util.List<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
       } else if (isSetOfDtos(root, pc.type)) {
         // the type was java.util.HashSet<FooDto>, resolve the dto package
-        dtoType = "java.util.HashSet<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        dtoType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
         // loosen the type to Set, otherwise the user still has to provide the dtos themselves
         domainType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
       } else if (root.getValueTypeForDtoType(pc.type) != null) {

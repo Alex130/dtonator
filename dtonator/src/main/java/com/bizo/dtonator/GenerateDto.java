@@ -308,7 +308,13 @@ public class GenerateDto {
         c.body.line("if (os == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        c.body.line("{} dtos = new {}();", dp.getDtoType(), dp.getDtoType());
+        String collectionType = dp.getDtoType();
+        if (dp.getDtoType().startsWith("List")) {
+          collectionType = dp.getDtoType().replaceFirst("List", "ArrayList");
+        } else if (dp.getDtoType().startsWith("java.util.List")) {
+          collectionType = dp.getDtoType().replaceFirst("java.util.List", "java.util.ArrayList");
+        }
+        c.body.line("{} dtos = new {}();", dp.getDtoType(), collectionType);
         c.body.line("for ({} o : os) {", dp.getSingleDomainType());
         c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
         c.body.line("}");
@@ -322,7 +328,13 @@ public class GenerateDto {
         c.body.line("if (os == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        c.body.line("{} dtos = new {}();", dp.getDtoType(), dp.getDtoType());
+        String collectionType = dp.getDtoType();
+        if (dp.getDtoType().startsWith("Set")) {
+          collectionType = dp.getDtoType().replaceFirst("Set", "HashSet");
+        } else if (dp.getDtoType().startsWith("java.util.Set")) {
+          collectionType = dp.getDtoType().replaceFirst("java.util.Set", "java.util.HashSet");
+        }
+        c.body.line("{} dtos = new {}();", dp.getDtoType(), collectionType);
         c.body.line("for ({} o : os) {", dp.getSingleDomainType());
         c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
         c.body.line("}");
@@ -382,7 +394,7 @@ public class GenerateDto {
       } else if (dp.isEntity()) {
         fromDto.body.line("_ o.{}(fromDto(dto.{}));", dp.getSetterMethodName(), dp.getName());
       } else if (dp.isListOfEntities()) {
-        final String helperMethod = dp.getName() + "For" + dto.getSimpleName();
+        final String helperMethod = dp.getName() + "From" + dto.getSimpleName();
         fromDto.body.line("_ o.{}({}(dto.{}));", dp.getSetterMethodName(), helperMethod, dp.getName());
         final GMethod c = mapper.getMethod(helperMethod, arg(dp.getDtoType(), "dtos"));
         c.returnType(dp.getDomainType()).setPrivate();
@@ -396,7 +408,7 @@ public class GenerateDto {
         c.body.line("}");
         c.body.line("return os;");
       } else if (dp.isSetOfEntities()) {
-        final String helperMethod = dp.getName() + "For" + dto.getSimpleName();
+        final String helperMethod = dp.getName() + "From" + dto.getSimpleName();
         fromDto.body.line("_ o.{}({}(dto.{}));", dp.getSetterMethodName(), helperMethod, dp.getName());
         final GMethod c = mapper.getMethod(helperMethod, arg(dp.getDtoType(), "dtos"));
         c.returnType(dp.getDomainType()).setPrivate();

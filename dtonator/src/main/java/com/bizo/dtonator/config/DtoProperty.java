@@ -82,11 +82,11 @@ public class DtoProperty {
   }
 
   public boolean isList() {
-    return dtoType.startsWith("java.util.ArrayList");
+    return dtoType.startsWith("java.util.ArrayList") || dtoType.startsWith("java.util.List");
   }
 
   public boolean isSet() {
-    return dtoType.startsWith("java.util.HashSet");
+    return dtoType.startsWith("java.util.HashSet") || dtoType.startsWith("java.util.Set");
   }
 
   public boolean isListOfEntities() {
