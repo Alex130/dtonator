@@ -86,8 +86,4 @@ public class Employee {
     return roles;
   }
 
-  public void setRoles(Set<Role> roles) {
-    this.roles = roles;
-  }
-
 }
