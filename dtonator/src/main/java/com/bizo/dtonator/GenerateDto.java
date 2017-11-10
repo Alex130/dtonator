@@ -10,6 +10,8 @@ import static org.apache.commons.lang.StringUtils.uncapitalize;
 
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.bizo.dtonator.config.DtoConfig;
 import com.bizo.dtonator.config.DtoProperty;
 import com.bizo.dtonator.config.RootConfig;
@@ -372,6 +374,10 @@ public class GenerateDto {
       }
       // given we already have an instance of o, assume we shouldn't change the id
       if ("id".equals(dp.getName())) {
+        continue;
+      }
+      //if there is no setter method defined, skip this property
+      if (StringUtils.isBlank(dp.getSetterMethodName())) {
         continue;
       }
       if (dp.isExtension()) {
