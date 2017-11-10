@@ -59,11 +59,11 @@ public class GenerateDto {
     addBaseClassIfNeeded();
     addAnnotations();
     addInterfaces();
-    addCopyOfMethod();
+    //    addCopyOfMethod();
     addDtoFields();
     addDefaultConstructor();
     addFullConstructor();
-    addCopyMethod();
+    //    addCopyMethod();
     addEqualityIfNeeded();
     addToString();
     addToFromMethodsToMapperIfNeeded();
