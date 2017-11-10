@@ -1,11 +1,13 @@
 config:
   dtoPackage: com.bizo.dtonator.dtos
-  domainPackage: com.bizo.dtonator.domain
+  domainPackage: com.bizo.dtonator.domain, com.bizo.foo.domain
   mapperPackage: com.bizo.dtonator.mapper
   modelPackage: com.bizo.dtonator.client.model
   indent: two-space
   valueTypes:
     com.bizo.dtonator.domain.Dollars: com.bizo.dtonator.dtos.Dollars
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: true
 
 EmployerDto:
   domain: Employer
@@ -16,6 +18,16 @@ EmployeeDto:
   properties: '*'
   equality: '*'
 
+InternDto:
+  domain: Intern
+  extends: EmployeeDto
+  properties: '*'
+  
+#testing property exclusion
+EmployerNoNameDto:
+  domain: Employer
+  properties: -name, *
+ 
 # testing a list of ids
 EmployeeWithAccountIdsDto:
   domain: Employee
@@ -26,6 +38,14 @@ EmployeeWithAccountIdsDto:
 EmployeeWithAccountsDto:
   domain: Employee
   properties: id, name, accounts
+
+RoleDto:
+  domain: Role
+  properties: '*'
+  
+EmployeeWithRolesDto:
+  domain: Employee
+  properties: roles, *
 
 # need the EmployeeAccountDto
 EmployeeAccountDto:
@@ -44,7 +64,7 @@ EmployeeSimpleAccountDto:
 # testing an entity
 EmployeeWithEmployerDto:
   domain: Employee
-  properties: id, name, employer
+  properties: id, name, employer EmployerDto
 
 # testing a child with it's parent id
 EmployeeWithEmployerIdDto:
@@ -69,7 +89,7 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: id, name
+  properties: '*'
   tessellModel: true
   forceMapperMethods: name
 
@@ -77,6 +97,12 @@ RedAccountDto:
   extends: AccountDto
   domain: RedAccount
   properties: foo
+  tessellModel: true
+  
+YellowAccountDto:
+  extends: AccountDto
+  domain: YellowAccount
+  properties: '*'
   tessellModel: true
 
 BlueAccountDto:
@@ -90,6 +116,66 @@ BlueHueAccountDto:
   domain: BlueHueAccount
   properties: zaz
   tessellModel: true
+  
+#test custom domain package
+OrangeAccountDto:
+  domainPackage: com.bizo.foo.domain
+  domain: OrangeAccount
+  properties: foo
+  
+#test entity with a property in a different domain
+OrangeManagerDto:
+  domain: OrangeManager
+  properties: '*'
+  
+  
+#testing excluding annotated fields
+EmployeeWithoutAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  
+EmployeeWithAnnotationsDto:
+  domain: EmployeeWithAnnotations
+  properties: '*'
+  excludedAnnotations:
+    com.bizo.dtonator.annotation.Transient: false
+
+#test inheritance with all properties included
+GreenAccountDto:
+  extends: AccountDto
+  domain: GreenAccount
+  properties: '*'
+  tessellModel: true
+  
+GreenHueAccountDto:
+  extends: GreenAccountDto
+  domain: GreenHueAccount
+  properties: '*'
+  tessellModel: true
+  
+# testing generic properties
+#RedManagerDto:
+#  domain: RedManager
+#  properties: account RedAccountDto, *
+  
+AbstractManagerDto:
+  domain: AbstractManager
+  properties: account, *
+  
+OtherManagerDto:
+  domain: AbstractManager
+  types: T extends AccountDto, V extends AccountDto
+  properties: account T, managedAccounts List<V>, *
+
+GreenManagerDto:
+  domain: GreenManager
+  extends: "AbstractManagerDto<GreenAccountDto,GreenAccountDto>"
+  properties: account, managedAccounts, *
+
+OtherYellowManagerDto:
+  domain: YellowManager
+  extends: "OtherManagerDto<YellowAccountDto, YellowAccountDto>"
+  properties: account YellowAccountDto, managedAccounts List<YellowAccountDto>,*
 
 # enums
 EmployeeType:

@@ -8,10 +8,29 @@ import static org.apache.commons.lang.StringUtils.defaultString;
 import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.Predicate;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.apache.commons.lang3.StringUtils;
+
+import com.bizo.dtonator.properties.GenericParser;
+import com.bizo.dtonator.properties.GenericParts;
+import com.bizo.dtonator.properties.GenericPartsDto;
 import com.bizo.dtonator.properties.Prop;
 import com.bizo.dtonator.properties.TypeOracle;
+
+import joist.util.FluentMap;
 
 public class DtoConfig {
 
@@ -20,6 +39,7 @@ public class DtoConfig {
   private final String simpleName;
   private final Map<String, Object> map;
   private List<DtoProperty> properties;
+  private MultiValuedMap<String, GenericPartsDto> genericTypeParameters;
 
   public DtoConfig(final TypeOracle oracle, final RootConfig root, final String simpleName, final Object map) {
     this.oracle = oracle;
@@ -29,6 +49,7 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getProperties() {
+
     if (properties == null) {
       properties = list();
       final List<PropConfig> pcs = getPropertiesConfig();
@@ -37,15 +58,30 @@ public class DtoConfig {
         addChainedPropertiesFromDomainObject(pcs);
       }
       addLeftOverExtensionProperties(pcs);
+
       sortProperties(pcs, properties);
     }
     return properties;
+
+  }
+
+  public List<DtoProperty> getClassProperties() {
+    Predicate<? super DtoProperty> p = new Predicate<DtoProperty>() {
+
+      @Override
+      public boolean evaluate(DtoProperty t) {
+
+        return !t.isInherited() && !t.isAbstract();
+      }
+    };
+
+    return (List<DtoProperty>) CollectionUtils.select(getProperties(), p);
   }
 
   public List<DtoProperty> getInheritedProperties() {
     final List<DtoProperty> p = list();
     for (final DtoConfig base : getBaseDtos()) {
-      p.addAll(base.getProperties());
+      p.addAll(base.getClassProperties());
     }
     return p;
   }
@@ -64,7 +100,23 @@ public class DtoConfig {
   }
 
   public List<DtoProperty> getAllProperties() {
-    return list(getInheritedProperties()).with(getProperties());
+    List<DtoProperty> properties = list();
+    properties.addAll(getAllPropertiesMap().values());
+    return properties;
+  }
+
+  public Map<String, DtoProperty> getAllPropertiesMap() {
+    FluentMap<String, DtoProperty> map = new FluentMap<>();
+    for (DtoProperty p : getInheritedProperties()) {
+      map.put(p.getName(), p);
+    }
+
+    for (DtoProperty p : getProperties()) {
+      if (!p.isAbstract()) {
+        map.put(p.getName(), p);
+      }
+    }
+    return map;
   }
 
   public String getSimpleName() {
@@ -101,8 +153,78 @@ public class DtoConfig {
     return interfaces;
   }
 
+  /** @return the generic types this DTO  should define. */
+  public List<GenericPartsDto> getGenericClassTypes() {
+    final List<GenericPartsDto> parts = list();
+    if (map.containsKey("types")) {
+      List<String> types = list(((String) map.get("types")).split(", ?"));
+      if (types != null) {
+        for (String type : types) {
+          String[] splitTypes = type.split(" ");
+          if (splitTypes != null && splitTypes.length > 0) {
+            GenericPartsDto gp = new GenericPartsDto();
+            gp.typeVar = splitTypes[0];
+            String boundType = "";
+            if (splitTypes.length > 2) {
+              gp.operator = splitTypes[1];
+              boundType = splitTypes[2];
+
+            } else {
+              gp.operator = "extends";
+              boundType = splitTypes[1];
+
+            }
+            if (root.getDto(boundType) != null) {
+              // the type was FooDto, we need to fully qualify it
+              gp.boundClass = root.getDto(boundType).getDtoType();
+            } else {
+              gp.boundClass = boundType;
+            }
+            parts.add(gp);
+          }
+        }
+      }
+    }
+
+    return parts;
+  }
+
+  public String getClassTypesString() {
+    if (map.containsKey("types")) {
+      return (String) map.get("types");
+    } else {
+      MultiValuedMap<String, GenericPartsDto> results = oracle.getClassTypes(getDomainType());
+      if (results != null && !results.isEmpty()) {
+        guessGenericDtos(results);
+        return GenericParser.typeToMapString(results);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  public boolean isChildClass() {
+    return getBaseDtoSimpleName() != null;
+  }
+
   /** @return this DTOs base class simple name, or {@code null} */
   public String getBaseDtoSimpleName() {
+    String name = getBaseDtoSimpleNameWithGenerics();
+
+    return StringUtils.removePattern(name, "<.*>");
+
+  }
+
+  public String getDomainPackage() {
+    String domain = (String) map.get("domainPackage");
+    if (domain == null && !root.getDomainPackages().isEmpty()) {
+      //if the domain package is not specified, default to the first root level domain package
+      domain = root.getDomainPackages().get(0);
+    }
+    return domain;
+  }
+
+  public String getBaseDtoSimpleNameWithGenerics() {
     return (String) map.get("extends");
   }
 
@@ -136,6 +258,48 @@ public class DtoConfig {
     return TRUE.equals(map.get("beanMethods")) || root.includeBeanMethods();
   }
 
+  public List<AnnotationConfig> getExcludedAnnotations() {
+    final Object value = map.get("excludedAnnotations");
+    List<AnnotationConfig> rootValues = root.getExcludedAnnotations();
+    if (value == null) {
+      if (rootValues == null) {
+        return list();
+      } else {
+        return rootValues;
+      }
+    }
+    final List<AnnotationConfig> valueTypes = list();
+    for (final Map.Entry<Object, Object> e : YamlUtils.ensureMap(value).entrySet()) {
+      valueTypes.add(new AnnotationConfig(e));
+    }
+
+    //allow the DTO level settings for 'excludedAnnotations' to override
+    //the root level settings.
+    List<AnnotationConfig> combinedValues = list();
+    combinedValues.addAll(valueTypes);
+    if (rootValues != null) {
+
+      for (AnnotationConfig acRoot : rootValues) {
+        boolean matched = false;
+        for (AnnotationConfig acDTO : valueTypes) {
+
+          if (acDTO.domainType.equals(acRoot.domainType)) {
+            matched = true;
+            break;
+          }
+
+        }
+
+        //if there is not an existing setting from the DTO level,
+        //add the root level setting
+        if (!matched) {
+          combinedValues.add(acRoot);
+        }
+      }
+    }
+    return combinedValues;
+  }
+
   /** @return the domain type backing this DTO, or {@code null} if it's standalone. */
   public String getDomainType() {
     final String rawValue = (String) map.get("domain");
@@ -145,7 +309,7 @@ public class DtoConfig {
     if (rawValue.contains(".")) {
       return rawValue;
     } else {
-      return root.getDomainPackage() + "." + rawValue;
+      return getDomainPackage() + "." + rawValue;
     }
   }
 
@@ -159,7 +323,7 @@ public class DtoConfig {
       throw new IllegalArgumentException("Expected a string for equality key");
     } else if ("*".equals(value)) {
       final List<String> names = list();
-      for (final DtoProperty p : getProperties()) {
+      for (final DtoProperty p : getClassProperties()) {
         names.add(p.getName());
       }
       return names;
@@ -208,7 +372,7 @@ public class DtoConfig {
   }
 
   public boolean hasExtensionProperties() {
-    for (final DtoProperty p : getProperties()) {
+    for (final DtoProperty p : getClassProperties()) {
       if (p.isExtension()) {
         return true;
       }
@@ -222,15 +386,22 @@ public class DtoConfig {
   }
 
   private void addChainedPropertiesFromDomainObject(final List<PropConfig> pcs) {
-    for (final Prop p : oracle.getProperties(getDomainType())) {
+    List<String> annotations = list();
+    for (AnnotationConfig av : getExcludedAnnotations()) {
+      if (av.exclude) {
+        annotations.add(av.domainType);
+      }
+    }
+
+    for (final Prop p : oracle.getProperties(getDomainType(), isChildClass(), annotations)) {
       // if we found "getFoo()/setFoo()" via reflection, look for a "fooId" prop config,
       // that would tell us the user wants to get/set Foo as its id
       final PropConfig pc = findChainedPropConfig(pcs, p.name);
       if (pc == null) {
         continue;
       }
-      final boolean hasGetterSetter = p.getterMethodName != null && p.setterNameMethod != null;
-      final boolean isDomainObject = isDomainObject(oracle, p.type);
+      final boolean hasGetterSetter = p.getGetterMethodName() != null && p.getSetterNameMethod() != null;
+      final boolean isDomainObject = isEntity(oracle, p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
@@ -244,14 +415,25 @@ public class DtoConfig {
           true,
           "java.lang.Long",
           p.type,
-          p.getterMethodName,
-          p.setterNameMethod));
+          p.getGetterMethodName(),
+          p.getSetterNameMethod(),
+          p.inherited,
+          p.isAbstract,
+          null));
       }
     }
   }
 
   private void addPropertiesFromDomainObject(final List<PropConfig> pcs) {
-    for (final Prop p : oracle.getProperties(getDomainType())) {
+
+    List<String> annotations = list();
+    for (AnnotationConfig av : getExcludedAnnotations()) {
+      if (av.exclude) {
+        annotations.add(av.domainType);
+      }
+    }
+
+    for (final Prop p : oracle.getProperties(getDomainType(), isChildClass(), annotations)) {
       final PropConfig pc = findPropConfig(pcs, p.name);
       if (pc != null) {
         // if we found a property in the oracle, we know this isn't an extension
@@ -263,38 +445,96 @@ public class DtoConfig {
       }
 
       // domainType has to be p.type, it came from reflection (right?)
-      final String domainType = p.type;
+      String domainType = p.type;
 
       boolean extension = false;
 
       final String dtoType;
+      String genericDomainType = null;
+      genericDomainType = findMappedTypeForProperty(domainType, p.getGenericTypes());
+
       if (pc != null && pc.type != null) {
-        // the user provided a PropConfig with an explicit type
-        if (root.getDto(pc.type) != null) {
-          // the type was FooDto, we need to fully qualify it
-          dtoType = root.getDto(pc.type).getDtoType();
-        } else if (isListOfDtos(root, pc.type)) {
-          // the type was java.util.ArrayList<FooDto>, resolve the dto package
-          dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
-        } else {
-          dtoType = pc.type;
-          extension = !dtoType.equals(domainType);
+        String pcType = pc.type;
+        if (!pc.type.equals(pc.fullType) && pc.fullTypeParts() != null && pc.fullTypeParts().length >= 2) {
+          //the type was a generic
+          if (genericTypeParameters == null) {
+            genericTypeParameters = new ArrayListValuedHashMap<>();
+          }
+          GenericPartsDto gpDto = new GenericPartsDto();
+          if (pc.fullTypeParts().length == 3) {
+            gpDto.typeVar = pc.fullTypeParts()[0];
+            gpDto.operator = pc.fullTypeParts()[1];
+            gpDto.boundClass = pc.fullTypeParts()[2];
+
+          }
+          genericTypeParameters.put(p.name, gpDto);
         }
+        // the user provided a PropConfig with an explicit type
+        if (root.getDto(pcType) != null) {
+          // the type was FooDto, we need to fully qualify it
+          dtoType = root.getDto(pcType).getDtoType();
+        } else if (isListOfDtos(root, pcType)) {
+          // the type was java.util.ArrayList<FooDto>, resolve the dto package
+          dtoType = "java.util.List<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+        } else if (isSetOfDtos(root, pcType)) {
+          // the type was java.util.HashSet<FooDto>, resolve the dto package
+          dtoType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pcType) + ">";
+        } else {
+          dtoType = pcType;
+
+          extension = !dtoType.equals(domainType);
+
+        }
+
         // TODO pc.type might ValueType (client-side), need to fully quality it?
       } else {
+
+        if (p.getGenericTypes() != null && !p.getGenericTypes().isEmpty()) {
+
+          MultiValuedMap<String, GenericPartsDto> partsDtoMap = new ArrayListValuedHashMap<>();
+          partsDtoMap = GenericParser.convertGenericMap(p.getGenericTypes());
+
+          if (pc != null) {
+
+            GenericPartsDto gp = partsDtoMap.values().iterator().next();
+            if (gp != null && gp.paramType != null && !gp.paramType.isEmpty()) {
+              guessGenericDtos(partsDtoMap);
+
+              if (genericTypeParameters == null) {
+                genericTypeParameters = new ArrayListValuedHashMap<>();
+              }
+              genericTypeParameters.putAll(partsDtoMap);
+
+              dtoType = domainType;
+            } else {
+              dtoType = null;
+            }
+
+          } else {
+            dtoType = null;
+          }
+
+        }
         // no PropConfig with an explicit type, so we infer the dto type from the domain type
-        if (root.getValueTypeForDomainType(domainType) != null) {
+        else if (root.getValueTypeForDomainType(domainType) != null) {
           dtoType = root.getValueTypeForDomainType(domainType).dtoType;
         } else if (oracle.isEnum(domainType)) {
           dtoType = root.getDtoPackage() + "." + simple(domainType);
         } else if (isListOfEntities(root, domainType)) {
           // only map lists of entities if it was included in properties
           if (pc != null) {
-            dtoType = "java.util.ArrayList<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
+            dtoType = "java.util.List<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
           } else {
             dtoType = null;
           }
-        } else if (domainType.startsWith(root.getDomainPackage())) {
+        } else if (isSetOfEntities(root, domainType)) {
+          // only map lists of entities if it was included in properties
+          if (pc != null) {
+            dtoType = "java.util.Set<" + guessDtoTypeForDomainType(root, listType(domainType)).getDtoType() + ">";
+          } else {
+            dtoType = null;
+          }
+        } else if (isDomainObject(root, domainType)) {
           // only map entities if it was included in properties
           if (pc != null) {
             dtoType = guessDtoTypeForDomainType(root, domainType).getDtoType();
@@ -303,6 +543,7 @@ public class DtoConfig {
           }
         } else {
           dtoType = domainType;
+
         }
       }
 
@@ -311,6 +552,7 @@ public class DtoConfig {
       }
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
+
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -320,8 +562,54 @@ public class DtoConfig {
         false,
         dtoType,
         domainType,
-        extension ? null : p.getterMethodName,
-        extension ? null : p.setterNameMethod));
+        extension ? null : p.getGetterMethodName(),
+        extension ? null : p.getSetterNameMethod(),
+        p.inherited,
+        p.isAbstract,
+        genericDomainType));
+
+    }
+  }
+
+  private String findMappedTypeForProperty(String domainType, MultiValuedMap<String, GenericParts> genericMap) {
+
+    MultiValuedMap<String, GenericParts> flatMap = GenericParser.flattenGenericMap(genericMap);
+    if (flatMap != null) {
+      Collection<GenericParts> parts = flatMap.get(domainType);
+      if (parts != null) {
+        for (GenericParts gp : parts) {
+          if (gp.getTypeVarString() == null || gp.getTypeVarString().isEmpty() || domainType.equals(gp.getTypeVarString())) {
+
+            if (gp.paramTypeArgs != null && !gp.paramTypeArgs.isEmpty()) {
+              return findMappedTypeForProperty(domainType, gp.paramTypeArgs);
+            } else if (gp.linkedTypes != null && !gp.linkedTypes.isEmpty()) {
+              return findMappedTypeForProperty(domainType, gp.getLinkedTypes());
+            }
+
+            else if (gp.boundClass != null) {
+              return gp.getBoundClassString();
+            }
+
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private void guessGenericDtos(MultiValuedMap<String, GenericPartsDto> partsDtoMap) {
+    for (GenericPartsDto gp : partsDtoMap.values()) {
+      if (gp.paramTypeArgs != null && !gp.paramTypeArgs.isEmpty()) {
+        guessGenericDtos(gp.getParamTypeArgs());
+      }
+      if (gp.linkedTypes != null && !gp.linkedTypes.isEmpty()) {
+        guessGenericDtos(gp.getLinkedTypes());
+      }
+
+      if (gp.boundClass != null && isEntity(oracle, gp.boundClass)) {
+        gp.boundClass = guessDtoTypeForDomainType(root, gp.boundClass).getDtoType();
+      }
     }
   }
 
@@ -331,6 +619,7 @@ public class DtoConfig {
       if (pc.mapped) {
         continue;
       }
+
       if (pc.type == null) {
         throw new IllegalStateException("type is required for extension properties: " + pc.name);
       }
@@ -348,20 +637,26 @@ public class DtoConfig {
         domainType = dtoType;
       } else if (isListOfDtos(root, pc.type)) {
         // the type was java.util.ArrayList<FooDto>, resolve the dto package
-        dtoType = "java.util.ArrayList<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        dtoType = "java.util.List<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
         // loosen the type to List, otherwise the user still has to provide the dtos themselves
         domainType = "java.util.List<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+      } else if (isSetOfDtos(root, pc.type)) {
+        // the type was java.util.HashSet<FooDto>, resolve the dto package
+        dtoType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
+        // loosen the type to Set, otherwise the user still has to provide the dtos themselves
+        domainType = "java.util.Set<" + root.getDtoPackage() + "." + listType(pc.type) + ">";
       } else if (root.getValueTypeForDtoType(pc.type) != null) {
         dtoType = root.getValueTypeForDtoType(pc.type).dtoType; // fully qualified
         domainType = root.getValueTypeForDtoType(pc.type).domainType;
-      } else if (oracle.isEnum(root.getDomainPackage() + "." + pc.type)) {
+      } else if (oracle.isEnum(getDomainPackage() + "." + pc.type)) {
         dtoType = root.getDtoPackage() + "." + pc.type;
-        domainType = root.getDomainPackage() + "." + pc.type;
+        domainType = getDomainPackage() + "." + pc.type;
       } else {
         // assume pc.type is the dto type
         dtoType = pc.type;
         domainType = dtoType;
       }
+
       properties.add(new DtoProperty(//
         oracle,
         root,
@@ -372,8 +667,12 @@ public class DtoConfig {
         dtoType,
         domainType,
         null,
+        null,
+        false,
+        false,
         null));
     }
+
   }
 
   /** @return the `properties: a, b` as parsed {@link PropConfig}, skipping the `*` character. */
@@ -402,6 +701,7 @@ public class DtoConfig {
     final String name;
     final String domainName;
     final String type;
+    final String fullType;
     final boolean isExclusion;
     final boolean isReadOnly;
     boolean mapped = false;
@@ -414,18 +714,28 @@ public class DtoConfig {
       // foo(zaz) Bar
       String _name;
       String _domainName = null;
+
       if (value.contains(" ")) {
         final String[] parts = splitIntoNameAndType(value);
         _name = parts[0];
-        type = TypeName.javaLangOrUtilPrefixIfNecessary(parts[1]);
+        fullType = TypeName.javaLangOrUtilPrefixIfNecessary(parts[1]);
+        String[] typeParts = parts[1].split(" ", 2);
+        if (typeParts.length > 0) {
+          type = TypeName.javaLangOrUtilPrefixIfNecessary(typeParts[0]);
+        } else {
+          type = fullType;
+        }
+
         isExclusion = false;
       } else if (value.startsWith("-")) {
         _name = value.substring(1);
         type = null;
+        fullType = null;
         isExclusion = true;
       } else {
         _name = value;
         type = null;
+        fullType = null;
         isExclusion = false;
       }
       if (_name.startsWith("~")) {
@@ -446,13 +756,21 @@ public class DtoConfig {
       mapped = true;
     }
 
+    public String[] fullTypeParts() {
+      if (fullType != null) {
+        return fullType.split(" ");
+      } else {
+        return null;
+      }
+    }
+
     @Override
     public String toString() {
       return (isExclusion ? "-" : "") + name + (type == null ? "" : " " + type);
     }
 
     private static String[] splitIntoNameAndType(final String value) {
-      final String[] parts = value.split(" ");
+      final String[] parts = value.split(" ", 2);
       if (parts.length != 2) {
         throw new IllegalArgumentException("Value '<name> <type>': " + value);
       }
@@ -467,24 +785,27 @@ public class DtoConfig {
 
   /** Sorts the properties based on their order in the YAML file, whether they're {@code id}, or alphabetically. */
   private static void sortProperties(final List<PropConfig> pcs, final List<DtoProperty> properties) {
-    Collections.sort(properties, (o1, o2) -> {
-      final PropConfig pc1 = findPropConfig(pcs, o1.getName());
-      final PropConfig pc2 = findPropConfig(pcs, o2.getName());
-      if (pc1 != null && pc2 != null) {
-        return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
-      } else if (pc1 != null && pc2 == null) {
-        return -1;
-      } else if (pc1 == null && pc2 != null) {
-        return 1;
-      } else {
-        if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
-          return 0;
-        } else if ("id".equals(o1.getName())) {
+    Collections.sort(properties, new Comparator<DtoProperty>() {
+      @Override
+      public int compare(DtoProperty o1, DtoProperty o2) {
+        final PropConfig pc1 = findPropConfig(pcs, o1.getName());
+        final PropConfig pc2 = findPropConfig(pcs, o2.getName());
+        if (pc1 != null && pc2 != null) {
+          return indexOfPropConfig(pcs, o1.getName()) - indexOfPropConfig(pcs, o2.getName());
+        } else if (pc1 != null && pc2 == null) {
           return -1;
-        } else if ("id".equals(o2.getName())) {
+        } else if (pc1 == null && pc2 != null) {
           return 1;
+        } else {
+          if ("id".equals(o1.getName()) && "id".equals(o2.getName())) {
+            return 0;
+          } else if ("id".equals(o1.getName())) {
+            return -1;
+          } else if ("id".equals(o2.getName())) {
+            return 1;
+          }
+          return o1.getName().compareTo(o2.getName());
         }
-        return o1.getName().compareTo(o2.getName());
       }
     });
   }
@@ -527,12 +848,25 @@ public class DtoConfig {
     return childConfig;
   }
 
-  static boolean isListOfEntities(final RootConfig config, final String domainType) {
-    return domainType.startsWith("java.util.List<" + config.getDomainPackage());
+  static boolean isListOfEntities(final RootConfig root, final String domainType) {
+    String domainString = StringUtils.substringBetween(domainType, "java.util.List<", ">");
+    return domainString != null && !domainString.equals(domainType) && isDomainObject(root, domainString);
+
   }
 
-  static boolean isEntity(final RootConfig config, final String domainType) {
-    return domainType.startsWith(config.getDomainPackage()) && config.getValueTypeForDomainType(domainType) == null;
+  static boolean isSetOfEntities(final RootConfig root, final String domainType) {
+    String domainString = StringUtils.substringBetween(domainType, "java.util.Set<", ">");
+    return domainString != null && !domainString.equals(domainType) && isDomainObject(root, domainString);
+  }
+
+  static boolean isDomainObject(final RootConfig config, final String domainType) {
+
+    for (String dp : config.getDomainPackages()) {
+      if (domainType.startsWith(dp)) {
+        return config.getValueTypeForDomainType(domainType) == null;
+      }
+    }
+    return false;
   }
 
   static boolean isListOfDtos(final RootConfig config, final String pcType) {
@@ -543,12 +877,48 @@ public class DtoConfig {
     return false;
   }
 
-  static boolean isDomainObject(final TypeOracle oracle, final String type) {
-    for (final Prop p : oracle.getProperties(type)) {
+  static boolean isSetOfDtos(final RootConfig config, final String pcType) {
+    // assume the user wanted List to be HashSet
+    if ((pcType.startsWith("java.util.HashSet<") || pcType.startsWith("java.util.Set<")) && pcType.endsWith(">")) {
+      return config.getDto(simple(listType(pcType))) != null;
+    }
+    return false;
+  }
+
+  static boolean isEntity(final TypeOracle oracle, final String type) {
+    for (final Prop p : oracle.getProperties(type, false)) {
       if (p.name.equals("id") && p.type.equals("java.lang.Long")) {
         return true;
       }
     }
     return false;
+  }
+
+  public MultiValuedMap<String, GenericPartsDto> getGenericTypeParameters() {
+    return genericTypeParameters;
+  }
+
+  public String getGenericTypeParametersString() {
+    return getGenericTypeParametersString(getAllPropertiesMap().keySet());
+  }
+
+  public String getGenericTypeParametersString(Set<String> propertyNames) {
+    String typeString = "";
+
+    if (getGenericTypeParameters() != null) {
+
+      MultiValuedMap<String, GenericPartsDto> typeMap = new ArrayListValuedHashMap<>();
+      if (propertyNames != null) {
+        for (String property : propertyNames) {
+          if (getGenericTypeParameters().containsKey(property)) {
+            typeMap.putAll(property, getGenericTypeParameters().get(property));
+          }
+        }
+      }
+      MultiValuedMap<String, GenericPartsDto> flatMap = GenericParser.flattenGenericMap(typeMap);
+      typeString = GenericParser.typeToMapString(flatMap);
+
+    }
+    return typeString;
   }
 }

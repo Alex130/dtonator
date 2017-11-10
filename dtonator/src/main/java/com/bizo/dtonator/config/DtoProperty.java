@@ -3,7 +3,10 @@ package com.bizo.dtonator.config;
 import static org.apache.commons.lang.StringUtils.substringAfterLast;
 import static org.apache.commons.lang.StringUtils.substringBetween;
 
+import org.apache.commons.collections4.MultiValuedMap;
+
 import com.bizo.dtonator.Names;
+import com.bizo.dtonator.properties.GenericPartsDto;
 import com.bizo.dtonator.properties.TypeOracle;
 
 /** A property to map back/forth between DTO/domain object. */
@@ -21,6 +24,9 @@ public class DtoProperty {
   private final String dtoType;
   private final String getterMethodName;
   private final String setterNameMethod;
+  private final boolean inherited;
+  private final String genericDomainType;
+  private final boolean isAbstract;
 
   public DtoProperty(
     final TypeOracle oracle,
@@ -32,7 +38,10 @@ public class DtoProperty {
     final String dtoType,
     final String domainType,
     final String getterMethodName,
-    final String setterNameMethod) {
+    final String setterNameMethod,
+    final boolean inherited,
+    final boolean isAbstract,
+    final String genericDomainType) {
     this.oracle = oracle;
     this.config = config;
     this.dto = dto;
@@ -43,6 +52,9 @@ public class DtoProperty {
     this.domainType = domainType;
     this.getterMethodName = getterMethodName;
     this.setterNameMethod = setterNameMethod;
+    this.inherited = inherited;
+    this.isAbstract = isAbstract;
+    this.genericDomainType = genericDomainType;
   }
 
   public DtoConfig getDto() {
@@ -58,7 +70,11 @@ public class DtoProperty {
   }
 
   public boolean isEntity() {
-    return DtoConfig.isEntity(config, domainType);
+    return DtoConfig.isEntity(oracle, domainType);
+  }
+
+  public boolean isGenericType() {
+    return genericDomainType != null && !genericDomainType.isEmpty();
   }
 
   public boolean isDto() {
@@ -66,15 +82,27 @@ public class DtoProperty {
   }
 
   public boolean isList() {
-    return dtoType.startsWith("java.util.ArrayList");
+    return dtoType.startsWith("java.util.ArrayList") || dtoType.startsWith("java.util.List");
+  }
+
+  public boolean isSet() {
+    return dtoType.startsWith("java.util.HashSet") || dtoType.startsWith("java.util.Set");
   }
 
   public boolean isListOfEntities() {
     return DtoConfig.isListOfEntities(config, domainType);
   }
 
+  public boolean isSetOfEntities() {
+    return DtoConfig.isSetOfEntities(config, domainType);
+  }
+
   public boolean isListOfDtos() {
     return DtoConfig.isListOfDtos(config, dtoType);
+  }
+
+  public boolean isSetOfDtos() {
+    return DtoConfig.isSetOfDtos(config, dtoType);
   }
 
   public String getSingleDtoType() {
@@ -145,6 +173,14 @@ public class DtoProperty {
 
   public boolean isChainedId() {
     return isChainedId;
+  }
+
+  public boolean isInherited() {
+    return inherited;
+  }
+
+  public boolean isAbstract() {
+    return isAbstract;
   }
 
 }

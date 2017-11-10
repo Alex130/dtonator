@@ -3,9 +3,9 @@ apply plugin: 'java'
 apply plugin: 'maven'
 
 group = 'com.bizo'
-version = [System.env.TRAVIS_TAG, 'SNAPSHOT'].find { it != null }
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+version = [System.env.TRAVIS_TAG, '1.39'].find { it != null }
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
 
 configurations {
   deployerJars
@@ -27,9 +27,12 @@ repositories {
 
 dependencies {
   compile 'commons-lang:commons-lang:2.6'
+  compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+  compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
   compile 'commons-beanutils:commons-beanutils:1.8.2'
   compile 'org.yaml:snakeyaml:1.8'
   compile 'joist:joist-util:1.9.1'
+  compile group: 'ru.vyarus', name: 'generics-resolver', version: '2.0.1'
   testCompile 'junit:junit:4.12'
   testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
   deployerJars 'org.apache.maven.wagon:wagon-ssh:2.6'
@@ -38,8 +41,17 @@ dependencies {
 uploadArchives {
   repositories.mavenDeployer {
     configuration = configurations.deployerJars
-    repository(url: 'scp://repo.joist.ws/var/www/joist.repo') {
-      authentication(userName: 'root', password: '/home/stephen/.ssh/id_rsa')
+    repository(url: uploadUrl) {
+      authentication(userName: username, password: password)
+    }
+    snapshotRepository(url: uploadUrl + '/snapshots') {
+      authentication(userName: username, password: password)
     }
   }
 }
+
+jar{
+  baseName = 'dtonator'
+  version = '1.39'
+}
+

@@ -1,6 +1,6 @@
 package com.bizo.dtonator.domain;
 
-public class Employer {
+public class Employer implements HasId {
 
   private Long id;
   private String name;
@@ -17,7 +17,7 @@ public class Employer {
     return id;
   }
 
-  public void setId(final Long id) {
+  public void setId(Long id) {
     this.id = id;
   }
 

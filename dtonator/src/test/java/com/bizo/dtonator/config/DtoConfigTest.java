@@ -2,7 +2,9 @@ package com.bizo.dtonator.config;
 
 import static joist.util.Copy.list;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +23,7 @@ public class DtoConfigTest {
 
   @Before
   public void setupRootConfig() {
-    config.put("domainPackage", "com.domain");
+    config.put("domainPackage", "com.domain, com.other");
     config.put("dtoPackage", "com.dto");
     root.put("config", config);
   }
@@ -35,7 +37,184 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     // then we have both
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(2));
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAllPropertiesForChild() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithList() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "List");
+    oracle.addProperty("com.domain.Bar", "b", "List<java.lang.String>", true, false);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("List<java.lang.String>"));
+      }
+    }
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithGeneric() {
+    // given two properties
+    oracle.addClassType("com.domain.Foo", "T", "extends", "Number");
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "T");
+    oracle.addProperty("com.domain.Bar", "b", "Integer", true, false);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getAllProperties().size(), is(3));
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("Integer"));
+      }
+    }
+  }
+
+  @Test
+  public void testAllMappedPropertiesForChildWithListOfEntities() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.util.List<com.domain.Child>");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      assertThat(dp.getName(), not("b"));
+
+    }
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAbstractProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.Long", false, true);
+
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    // then b should be marked as abstract and excluded
+    final DtoConfig dc = rootConfig.getDto("FooDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+
+      assertThat(dp.getName(), not("b"));
+      assertFalse(dp.isAbstract());
+
+    }
+    assertThat(dc.getAllProperties().size(), is(1));
+  }
+
+  @Test
+  public void testAllPropertiesForChildWithAbstractParent() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.Long", false, true);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then abstract properties should be excluded
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      assertThat(dp.getName(), not("b"));
+
+    }
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAllMappedOverridesForChildWithListOfEntities() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.util.List<com.domain.Child>");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("a, b"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("java.util.List<com.domain.Child>"));
+        assertThat(dp.getDtoType(), is("java.util.List<com.dto.ChildDto>"));
+      }
+    }
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
+  public void testClassProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("c"));
+  }
+
+  @Test
+  public void testInheritedProperties() {
+    // given two properties
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("*"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+    for (DtoProperty dp : dc.getInheritedProperties()) {
+      assertThat(dp.getName(), not("c"));
+    }
+    assertThat(dc.getInheritedProperties().size(), is(2));
   }
 
   @Test
@@ -47,7 +226,7 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("-b, *"));
     // then we have only 1
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(1));
+    assertThat(dc.getClassProperties().size(), is(1));
   }
 
   @Test
@@ -62,7 +241,7 @@ public class DtoConfigTest {
     // when asked
     final DtoConfig dc = new DtoConfig(oracle, rootConfig, "FooDto", map);
     // then we have only 1
-    assertThat(dc.getProperties().size(), is(1));
+    assertThat(dc.getClassProperties().size(), is(1));
   }
 
   @Test
@@ -74,9 +253,9 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("a ArrayList<Integer>, *"));
     // when asked
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(2));
-    assertThat(dc.getProperties().get(0).getName(), is("a"));
-    assertThat(dc.getProperties().get(1).getName(), is("b"));
+    assertThat(dc.getClassProperties().size(), is(2));
+    assertThat(dc.getClassProperties().get(0).getName(), is("a"));
+    assertThat(dc.getClassProperties().get(1).getName(), is("b"));
   }
 
   // Terminology:
@@ -92,15 +271,15 @@ public class DtoConfigTest {
     addDto("FooDto", properties("id Integer, name String"));
     // then we have both properties
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(2));
-    assertThat(dc.getProperties().get(0).getName(), is("id"));
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.lang.Integer"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("java.lang.Integer"));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
-    assertThat(dc.getProperties().get(1).getName(), is("name"));
-    assertThat(dc.getProperties().get(1).getDtoType(), is("java.lang.String"));
-    assertThat(dc.getProperties().get(1).getDomainType(), is("java.lang.String"));
-    assertThat(dc.getProperties().get(1).isExtension(), is(true));
+    assertThat(dc.getClassProperties().size(), is(2));
+    assertThat(dc.getClassProperties().get(0).getName(), is("id"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.lang.Integer"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.lang.Integer"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().get(1).getName(), is("name"));
+    assertThat(dc.getClassProperties().get(1).getDtoType(), is("java.lang.String"));
+    assertThat(dc.getClassProperties().get(1).getDomainType(), is("java.lang.String"));
+    assertThat(dc.getClassProperties().get(1).isExtension(), is(true));
   }
 
   @Test
@@ -111,11 +290,11 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("a, b String"));
     // then we have both
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(2));
-    assertThat(dc.getProperties().get(0).getName(), is("a"));
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.lang.String"));
-    assertThat(dc.getProperties().get(1).getName(), is("b"));
-    assertThat(dc.getProperties().get(1).getDtoType(), is("java.lang.String"));
+    assertThat(dc.getClassProperties().size(), is(2));
+    assertThat(dc.getClassProperties().get(0).getName(), is("a"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.lang.String"));
+    assertThat(dc.getClassProperties().get(1).getName(), is("b"));
+    assertThat(dc.getClassProperties().get(1).getDtoType(), is("java.lang.String"));
   }
 
   @Test
@@ -124,9 +303,9 @@ public class DtoConfigTest {
     addDto("FooDto", properties("a ArrayList<String>"));
     final DtoConfig dc = rootConfig.getDto("FooDto");
     // then we get the right type
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.ArrayList<java.lang.String>"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("java.util.ArrayList<java.lang.String>"));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.ArrayList<java.lang.String>"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.ArrayList<java.lang.String>"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -137,9 +316,22 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("children ArrayList<String>"));
     final DtoConfig dc = rootConfig.getDto("FooDto");
     // then we get the right type
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.ArrayList<java.lang.String>"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("java.util.List<Child>"));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.ArrayList<java.lang.String>"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.List<Child>"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
+  }
+
+  @Test
+  public void testMappedOverridesFromJavaUtilSet() {
+    // given a domain object with some children
+    oracle.addProperty("com.domain.Foo", "children", "java.util.Set<Child>");
+    // and an override property of HashSet
+    addDto("FooDto", domain("Foo"), properties("children HashSet<String>"));
+    final DtoConfig dc = rootConfig.getDto("FooDto");
+    // then we get the right type
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.HashSet<java.lang.String>"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.Set<Child>"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -150,10 +342,10 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     // then we know the right dto type
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.ValueType"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.domain.ValueType"));
-    assertThat(dc.getProperties().get(0).isValueType(), is(true));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.ValueType"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.domain.ValueType"));
+    assertThat(dc.getClassProperties().get(0).isValueType(), is(true));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -164,10 +356,10 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("a"));
     // then we know the right dto type
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.ValueType"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.domain.ValueType"));
-    assertThat(dc.getProperties().get(0).isValueType(), is(true));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.ValueType"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.domain.ValueType"));
+    assertThat(dc.getClassProperties().get(0).isValueType(), is(true));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -177,10 +369,10 @@ public class DtoConfigTest {
     valueTypes().put("com.domain.values.ValueType", "com.dto.values.ValueType");
     final DtoConfig dc = rootConfig.getDto("FooDto");
     // map it back, with the fully qualified types
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.values.ValueType"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.domain.values.ValueType"));
-    assertThat(dc.getProperties().get(0).isValueType(), is(true));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.values.ValueType"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.domain.values.ValueType"));
+    assertThat(dc.getClassProperties().get(0).isValueType(), is(true));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -191,8 +383,8 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     // they have the client/server types
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.Type"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.domain.Type"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.Type"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.domain.Type"));
   }
 
   @Test
@@ -202,8 +394,8 @@ public class DtoConfigTest {
     addDto("FooDto", properties("type Type"));
     // it's fully qualified
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.Type"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.domain.Type"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.Type"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.domain.Type"));
   }
 
   @Test
@@ -213,8 +405,8 @@ public class DtoConfigTest {
     addDto("BarDto");
     // it's fully qualified
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.BarDto"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("com.dto.BarDto"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.BarDto"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("com.dto.BarDto"));
   }
 
   @Test
@@ -226,7 +418,7 @@ public class DtoConfigTest {
     addDto("BarDto");
     // then we skip it
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(0));
+    assertThat(dc.getClassProperties().size(), is(0));
   }
 
   @Test
@@ -237,8 +429,8 @@ public class DtoConfigTest {
     addDto("BarDto");
     // it's fully qualified
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.BarDto"));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.BarDto"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -249,8 +441,8 @@ public class DtoConfigTest {
     addDto("BarDto");
     // it's fully qualified
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("com.dto.BarDto"));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("com.dto.BarDto"));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -261,8 +453,8 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("~a"));
     // then we know it's read only
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).isReadOnly(), is(true));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).isReadOnly(), is(true));
   }
 
   @Test
@@ -273,8 +465,8 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("a Integer"));
     // then it's not an extension property
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -285,8 +477,8 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("a Long"));
     // then we know it's an extension property
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -295,7 +487,7 @@ public class DtoConfigTest {
     addDto("FooDto", properties("~a String"));
     final DtoConfig dc = rootConfig.getDto("FooDto");
     // then we know it's read only
-    assertThat(dc.getProperties().get(0).isReadOnly(), is(true));
+    assertThat(dc.getClassProperties().get(0).isReadOnly(), is(true));
   }
 
   @Test
@@ -310,8 +502,56 @@ public class DtoConfigTest {
     addDto("ParentDto", domain("Parent"), properties("*"));
     // then it only has the name property
     final DtoConfig dc = rootConfig.getDto("ParentDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("name"));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testMappedPropertiesThatAreSetsOfEntities() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.Set<com.domain.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testPropertiesThatAreListsOfEntitiesInDifferentDomain() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.List<com.other.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+  }
+
+  @Test
+  public void testPropertiesThatAreSetsOfEntitiesInDifferentDomain() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Parent", "name", "java.lang.String");
+    oracle.addProperty("com.domain.Parent", "children", "java.util.Set<com.other.Child>");
+    oracle.addProperty("com.domain.Child", "id", "java.lang.Integer");
+    // and the child dto has an entry in the yaml file
+    addDto("ChildDto", properties("*"));
+    // and the parent doesn't opt in the children
+    addDto("ParentDto", domain("Parent"), properties("*"));
+    // then it only has the name property
+    final DtoConfig dc = rootConfig.getDto("ParentDto");
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
   }
 
   @Test
@@ -323,11 +563,11 @@ public class DtoConfigTest {
     addDto("ChildDto", domain("Child"), properties("parentId"));
     // then it only has the name property
     final DtoConfig dc = rootConfig.getDto("ChildDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("parentId"));
-    assertThat(dc.getProperties().get(0).isChainedId(), is(true));
-    assertThat(dc.getProperties().get(0).getGetterMethodName(), is("getParent"));
-    assertThat(dc.getProperties().get(0).getSetterMethodName(), is("setParent"));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("parentId"));
+    assertThat(dc.getClassProperties().get(0).isChainedId(), is(true));
+    assertThat(dc.getClassProperties().get(0).getGetterMethodName(), is("getParent"));
+    assertThat(dc.getClassProperties().get(0).getSetterMethodName(), is("setParent"));
   }
 
   @Test
@@ -339,10 +579,10 @@ public class DtoConfigTest {
     addDto("ChildDto", domain("Child"), properties("parentId Long"));
     // then it only has the name property
     final DtoConfig dc = rootConfig.getDto("ChildDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("parentId"));
-    assertThat(dc.getProperties().get(0).isChainedId(), is(false));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("parentId"));
+    assertThat(dc.getClassProperties().get(0).isChainedId(), is(false));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -354,10 +594,10 @@ public class DtoConfigTest {
     addDto("ChildDto", domain("Child"), properties("parentId Integer"));
     // then it only has the name property
     final DtoConfig dc = rootConfig.getDto("ChildDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("parentId"));
-    assertThat(dc.getProperties().get(0).isChainedId(), is(false));
-    assertThat(dc.getProperties().get(0).isExtension(), is(true));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("parentId"));
+    assertThat(dc.getClassProperties().get(0).isChainedId(), is(false));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(true));
   }
 
   @Test
@@ -371,10 +611,10 @@ public class DtoConfigTest {
     addDto("ChildDto", domain("Child"), properties("parentId"));
     // then parentId gets mapped just once
     final DtoConfig dc = rootConfig.getDto("ChildDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("parentId"));
-    assertThat(dc.getProperties().get(0).isChainedId(), is(false));
-    assertThat(dc.getProperties().get(0).isExtension(), is(false));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("parentId"));
+    assertThat(dc.getClassProperties().get(0).isChainedId(), is(false));
+    assertThat(dc.getClassProperties().get(0).isExtension(), is(false));
   }
 
   @Test
@@ -388,10 +628,10 @@ public class DtoConfigTest {
     addDto("ParentDto", domain("Parent"), properties("children")); // leave off List<ChildDto>
     // then we map Child to the ChildDto
     final DtoConfig dc = rootConfig.getDto("ParentDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("children"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("java.util.List<com.domain.Child>"));
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.ArrayList<com.dto.ChildDto>"));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("children"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.List<com.domain.Child>"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.List<com.dto.ChildDto>"));
   }
 
   @Test
@@ -405,10 +645,10 @@ public class DtoConfigTest {
     addDto("ParentDto", domain("Parent"), properties("children List<ChildDto>")); // include List<ChildDto>
     // then we map Child to the ChildDto
     final DtoConfig dc = rootConfig.getDto("ParentDto");
-    assertThat(dc.getProperties().size(), is(1));
-    assertThat(dc.getProperties().get(0).getName(), is("children"));
-    assertThat(dc.getProperties().get(0).getDomainType(), is("java.util.List<com.domain.Child>"));
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.ArrayList<com.dto.ChildDto>"));
+    assertThat(dc.getClassProperties().size(), is(1));
+    assertThat(dc.getClassProperties().get(0).getName(), is("children"));
+    assertThat(dc.getClassProperties().get(0).getDomainType(), is("java.util.List<com.domain.Child>"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.List<com.dto.ChildDto>"));
   }
 
   @Test
@@ -418,7 +658,7 @@ public class DtoConfigTest {
     addDto("BarDto");
     // it's fully qualified
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getDtoType(), is("java.util.ArrayList<com.dto.BarDto>"));
+    assertThat(dc.getClassProperties().get(0).getDtoType(), is("java.util.List<com.dto.BarDto>"));
   }
 
   @Test
@@ -428,8 +668,8 @@ public class DtoConfigTest {
     // and aliased to name
     addDto("FooDto", domain("Foo"), properties("name(longPropertyName)"));
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().get(0).getName(), is("name"));
-    assertThat(dc.getProperties().get(0).getGetterMethodName(), is("getLongPropertyName"));
+    assertThat(dc.getClassProperties().get(0).getName(), is("name"));
+    assertThat(dc.getClassProperties().get(0).getGetterMethodName(), is("getLongPropertyName"));
   }
 
   @Test
@@ -441,10 +681,10 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("*"));
     // then we've sorted them
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(3));
-    assertThat(dc.getProperties().get(0).getName(), is("id"));
-    assertThat(dc.getProperties().get(1).getName(), is("a"));
-    assertThat(dc.getProperties().get(2).getName(), is("b"));
+    assertThat(dc.getClassProperties().size(), is(3));
+    assertThat(dc.getClassProperties().get(0).getName(), is("id"));
+    assertThat(dc.getClassProperties().get(1).getName(), is("a"));
+    assertThat(dc.getClassProperties().get(2).getName(), is("b"));
   }
 
   @Test
@@ -458,11 +698,11 @@ public class DtoConfigTest {
     addDto("FooDto", domain("Foo"), properties("d, c String, b, a"));
     // then we've sorted them
     final DtoConfig dc = rootConfig.getDto("FooDto");
-    assertThat(dc.getProperties().size(), is(4));
-    assertThat(dc.getProperties().get(0).getName(), is("d"));
-    assertThat(dc.getProperties().get(1).getName(), is("c"));
-    assertThat(dc.getProperties().get(2).getName(), is("b"));
-    assertThat(dc.getProperties().get(3).getName(), is("a"));
+    assertThat(dc.getClassProperties().size(), is(4));
+    assertThat(dc.getClassProperties().get(0).getName(), is("d"));
+    assertThat(dc.getClassProperties().get(1).getName(), is("c"));
+    assertThat(dc.getClassProperties().get(2).getName(), is("b"));
+    assertThat(dc.getClassProperties().get(3).getName(), is("a"));
   }
 
   private void addDto(final String simpleName, final Entry... entries) {
@@ -489,6 +729,10 @@ public class DtoConfigTest {
 
   private static Entry properties(final String value) {
     return new Entry("properties", value);
+  }
+
+  private static Entry extendsDto(final String value) {
+    return new Entry("extends", value);
   }
 
   private static class Entry {

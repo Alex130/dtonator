@@ -26,8 +26,15 @@ public class RootConfig {
     return getConfig().get("dtoPackage");
   }
 
-  public String getDomainPackage() {
-    return getConfig().get("domainPackage");
+  public List<String> getDomainPackages() {
+
+    final Object value = getConfig().get("domainPackage");
+    if (value == null) {
+      return list();
+    } else {
+      return YamlUtils.parseExpectedStringToList("domainPackage", value);
+    }
+
   }
 
   public String getMapperPackage() {
@@ -85,6 +92,18 @@ public class RootConfig {
 
   public boolean includeBeanMethods() {
     return TRUE.equals(getConfig().get("beanMethods"));
+  }
+
+  public List<AnnotationConfig> getExcludedAnnotations() {
+    final Object value = getConfig().get("excludedAnnotations");
+    if (value == null) {
+      return list();
+    }
+    final List<AnnotationConfig> valueTypes = list();
+    for (final Map.Entry<Object, Object> e : YamlUtils.ensureMap(value).entrySet()) {
+      valueTypes.add(new AnnotationConfig(e));
+    }
+    return valueTypes;
   }
 
   public Collection<DtoConfig> getDtos() {
