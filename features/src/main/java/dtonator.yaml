@@ -84,17 +84,22 @@ EmployeeWithOnlyNameDto:
 # testing inheritance
 EmployeeWithTypedAccountsDto:
   domain: EmployeeWithTypedAccounts
-  properties: id, name, accounts
+  properties: id, name, accounts List<AccountTslDto>
   tessellModel: true
 
 AccountDto:
+  domain: Account
+  properties: '*'
+  tessellModel: false
+
+AccountTslDto:
   domain: Account
   properties: '*'
   tessellModel: true
   forceMapperMethods: name
 
 RedAccountDto:
-  extends: AccountDto
+  extends: AccountTslDto
   domain: RedAccount
   properties: foo
   tessellModel: true
@@ -103,10 +108,9 @@ YellowAccountDto:
   extends: AccountDto
   domain: YellowAccount
   properties: '*'
-  tessellModel: true
 
 BlueAccountDto:
-  extends: AccountDto
+  extends: AccountTslDto
   domain: BlueAccount
   properties: bar
   tessellModel: true
@@ -121,13 +125,18 @@ BlueHueAccountDto:
 OrangeAccountDto:
   domainPackage: com.bizo.foo.domain
   domain: OrangeAccount
-  properties: foo
+  extends: AccountDto
+  properties: id, foo
   
 #test entity with a property in a different domain
-OrangeManagerDto:
-  domain: OrangeManager
-  properties: '*'
-  
+DistrictManagerDto:
+  domain: DistrictManager
+  properties: account, managedAccounts, *
+
+OrangeDistrictManagerDto:
+  domain: OrangeDistrictManager
+  extends: DistrictManagerDto<OrangeAccountDto>
+  properties: account, managedAccounts, *  
   
 #testing excluding annotated fields
 EmployeeWithoutAnnotationsDto:
@@ -145,13 +154,11 @@ GreenAccountDto:
   extends: AccountDto
   domain: GreenAccount
   properties: '*'
-  tessellModel: true
   
 GreenHueAccountDto:
   extends: GreenAccountDto
   domain: GreenHueAccount
   properties: '*'
-  tessellModel: true
   
 # testing generic properties
 #RedManagerDto:
@@ -160,7 +167,7 @@ GreenHueAccountDto:
   
 AbstractManagerDto:
   domain: AbstractManager
-  properties: account, *
+  properties: account, managedAccounts, *
   
 OtherManagerDto:
   domain: AbstractManager

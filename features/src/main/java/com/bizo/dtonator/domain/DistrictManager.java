@@ -4,22 +4,22 @@ import java.util.List;
 
 import com.bizo.foo.domain.OrangeAccount;
 
-public class OrangeManager {
+public class DistrictManager<T extends Account> {
 
   private Long id;
 
   private String name;
 
-  private OrangeAccount account;
+  private T account;
 
   private int employees;
 
-  protected List<OrangeAccount> managedAccounts;
+  protected List<T> managedAccounts;
 
-  public OrangeManager() {
+  public DistrictManager() {
   }
 
-  public OrangeManager(final Long id, String name) {
+  public DistrictManager(final Long id, String name) {
     setId(id);
     setName(name);
   }
@@ -40,11 +40,11 @@ public class OrangeManager {
     this.name = name;
   }
 
-  public OrangeAccount getAccount() {
+  public T getAccount() {
     return account;
   }
 
-  public void setAccount(OrangeAccount account) {
+  public void setAccount(T account) {
     this.account = account;
   }
 
@@ -56,11 +56,11 @@ public class OrangeManager {
     this.employees = employees;
   }
 
-  public List<OrangeAccount> getManagedAccounts() {
+  public List<T> getManagedAccounts() {
     return managedAccounts;
   }
 
-  public void setManagedAccounts(List<OrangeAccount> managedAccounts) {
+  public void setManagedAccounts(List<T> managedAccounts) {
     this.managedAccounts = managedAccounts;
   }
 

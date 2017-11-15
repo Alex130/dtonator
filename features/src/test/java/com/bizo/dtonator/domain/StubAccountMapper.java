@@ -1,9 +1,9 @@
 package com.bizo.dtonator.domain;
 
-import com.bizo.dtonator.mapper.AccountDtoMapper;
+import com.bizo.dtonator.mapper.AccountTslDtoMapper;
 import com.bizo.dtonator.mapper.Mapper;
 
-public class StubAccountMapper implements AccountDtoMapper {
+public class StubAccountMapper implements AccountTslDtoMapper {
 
   private String suffix;
 

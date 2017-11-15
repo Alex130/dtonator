@@ -1,17 +1,17 @@
 package com.bizo.foo.domain;
 
-public class OrangeAccount {
+import com.bizo.dtonator.domain.Account;
 
-  private Long id;
-  private String name;
+public class OrangeAccount extends Account {
+
   private boolean foo;
 
   public OrangeAccount() {
   }
 
   public OrangeAccount(Long id, String name, boolean foo) {
-    this.id = id;
-    this.name = name;
+
+    super(id, name);
     this.foo = foo;
   }
 
@@ -21,18 +21,6 @@ public class OrangeAccount {
 
   public void setFoo(boolean foo) {
     this.foo = foo;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public Long getId() {
-    return id;
   }
 
 }

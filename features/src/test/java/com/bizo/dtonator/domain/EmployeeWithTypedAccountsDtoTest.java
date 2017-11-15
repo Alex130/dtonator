@@ -13,6 +13,7 @@ import com.bizo.dtonator.client.model.BlueHueAccountModel;
 import com.bizo.dtonator.client.model.EmployeeWithTypedAccountsModel;
 import com.bizo.dtonator.client.model.RedAccountModel;
 import com.bizo.dtonator.dtos.AccountDto;
+import com.bizo.dtonator.dtos.AccountTslDto;
 import com.bizo.dtonator.dtos.BlueHueAccountDto;
 import com.bizo.dtonator.dtos.EmployeeWithTypedAccountsDto;
 import com.bizo.dtonator.dtos.RedAccountDto;
@@ -27,7 +28,7 @@ public class EmployeeWithTypedAccountsDtoTest {
   @Test
   public void testChildDtoExtendsParentDto() {
     RedAccountDto red = new RedAccountDto(1L, "one", true);
-    assertThat(red, is(instanceOf(AccountDto.class)));
+    assertThat(red, is(instanceOf(AccountTslDto.class)));
   }
 
   @Test
@@ -54,7 +55,7 @@ public class EmployeeWithTypedAccountsDtoTest {
   @Test
   public void testToDtoViaBaseClassMethod() {
     RedAccount o = new RedAccount(1L, "one", true);
-    RedAccountDto d = (RedAccountDto) mapper.toAccountDto(o);
+    RedAccountDto d = (RedAccountDto) mapper.toAccountTslDto(o);
     assertThat(d.id, is(1L));
     assertThat(d.name, is("one"));
     assertThat(d.foo, is(true));
@@ -92,7 +93,7 @@ public class EmployeeWithTypedAccountsDtoTest {
     RedAccountDto d = new RedAccountDto(1L, "one1", true);
     lookup.store(1L, new RedAccount(1L, "one", false));
 
-    RedAccount o = (RedAccount) mapper.fromDto((AccountDto) d);
+    RedAccount o = (RedAccount) mapper.fromDto((AccountTslDto) d);
     assertThat(o.getId(), is(1L));
     assertThat(o.getName(), is("one1"));
     assertThat(o.isFoo(), is(true));
@@ -104,7 +105,7 @@ public class EmployeeWithTypedAccountsDtoTest {
     lookup.store(2L, new RedAccount(2L, "two", true));
     lookup.store(3L, new BlueHueAccount(3L, "three", false, false));
 
-    EmployeeWithTypedAccountsDto d = new EmployeeWithTypedAccountsDto(1L, "name2", new ArrayList<AccountDto>());
+    EmployeeWithTypedAccountsDto d = new EmployeeWithTypedAccountsDto(1L, "name2", new ArrayList<AccountTslDto>());
     d.accounts.add(new RedAccountDto(2L, "two1", false));
     d.accounts.add(new BlueHueAccountDto(3L, "three1", true, true));
 
@@ -133,7 +134,7 @@ public class EmployeeWithTypedAccountsDtoTest {
     }
 
     EmployeeWithTypedAccountsModel parent = new EmployeeWithTypedAccountsModel(
-      new EmployeeWithTypedAccountsDto(1L, null, new ArrayList<AccountDto>()));
+      new EmployeeWithTypedAccountsDto(1L, null, new ArrayList<AccountTslDto>()));
     parent.accounts.add(new RedAccountDto(2L, "red", true));
     assertThat(parent.accountModels().get().get(0), is(instanceOf(RedAccountModel.class)));
   }
@@ -153,7 +154,7 @@ public class EmployeeWithTypedAccountsDtoTest {
     assertThat(m.zaz.get(), is(true));
 
     EmployeeWithTypedAccountsModel parent = new EmployeeWithTypedAccountsModel(
-      new EmployeeWithTypedAccountsDto(1L, null, new ArrayList<AccountDto>()));
+      new EmployeeWithTypedAccountsDto(1L, null, new ArrayList<AccountTslDto>()));
     parent.accounts.add(m.getDto());
     assertThat(parent.accountModels().get().get(0), is(instanceOf(BlueHueAccountModel.class)));
   }

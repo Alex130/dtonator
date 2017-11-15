@@ -2,7 +2,7 @@ package com.bizo.dtonator.domain;
 
 public abstract class Account {
 
-  private Long id;
+  protected Long id;
   private String name;
 
   public Account() {
