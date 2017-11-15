@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import com.bizo.dtonator.config.RootConfig;
 import com.bizo.dtonator.domain.AbstractParent;
+import com.bizo.dtonator.domain.AddressGeneric;
 import com.bizo.dtonator.domain.Brother;
 import com.bizo.dtonator.domain.Child;
 import com.bizo.dtonator.domain.ChildGeneric;
@@ -216,6 +217,39 @@ public class ReflectionTypeOracleTest {
     assertNotNull(genderProp);
     assertNotNull(siblingIdsProp);
     assertThat(properties.size(), is(3));
+
+  }
+
+  @Test
+  public void testGetPropertiesForUnboundGeneric() {
+
+    List<Prop> properties = oracle.getProperties(AddressGeneric.class.getName(), true);
+
+    assertNotNull(properties);
+    Prop geoCodeProp = null;
+    Prop poBoxProp = null;
+    Prop streetProp = null;
+    for (Prop p : properties) {
+      if ("geoCode".equals(p.name)) {
+        geoCodeProp = p;
+
+      }
+      if ("poBox".equals(p.name)) {
+        poBoxProp = p;
+
+      }
+      if ("street".equals(p.name)) {
+        streetProp = p;
+
+      }
+    }
+    assertNotNull(geoCodeProp);
+    assertThat(geoCodeProp.type, is("java.lang.Integer"));
+    assertNotNull(poBoxProp);
+    assertThat(poBoxProp.type, is("java.lang.String"));
+    assertNotNull(streetProp);
+    assertThat(streetProp.type, is("java.lang.String"));
+    assertThat(properties.size(), is(4));
 
   }
 }

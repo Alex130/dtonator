@@ -230,7 +230,7 @@ public class GenerateDto {
     final GClass mb = out.getClass(dtoType).setInterface();
 
     if (dto.getGenericClassTypes() != null && !dto.getGenericClassTypes().isEmpty()) {
-      for (GenericPartsDto type : dto.getGenericClassTypes()) {
+      for (GenericPartsDto type : dto.getGenericClassTypes().values()) {
 
         mb.stripAndImportPackageIfPossible(type.getBoundClassString());
       }
@@ -377,7 +377,7 @@ public class GenerateDto {
         continue;
       }
       //if there is no setter method defined, skip this property
-      if (StringUtils.isBlank(dp.getSetterMethodName())) {
+      if (StringUtils.isBlank(dp.getSetterMethodName()) && !dp.isExtension()) {
         continue;
       }
       if (dp.isExtension()) {
@@ -402,28 +402,34 @@ public class GenerateDto {
       } else if (dp.isListOfEntities()) {
         final String helperMethod = dp.getName() + "From" + dto.getSimpleName();
         fromDto.body.line("_ o.{}({}(dto.{}));", dp.getSetterMethodName(), helperMethod, dp.getName());
-        final GMethod c = mapper.getMethod(helperMethod, arg(dp.getDtoType(), "dtos"));
-        c.returnType(dp.getDomainType()).setPrivate();
+
+        String domainString = dp.isGenericType() ? dp.getGenericDomainType() : dp.getDomainType();
+        String dtoString = dp.isGenericType() ? dp.getGenericDtoType() : dp.getDtoType();
+        final GMethod c = mapper.getMethod(helperMethod, arg(dtoString, "dtos"));
+        c.returnType(domainString).setPrivate();
         // assumes List->ArrayList
         c.body.line("if (dtos == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        c.body.line("{} os = new {}();", dp.getDomainType(), dp.getDomainType().replace("List", "ArrayList"));
-        c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType());
+        c.body.line("{} os = new {}();", domainString, domainString.replace("List", "ArrayList"));
+        c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType(dtoString));
         c.body.line("_ os.add(fromDto(dto));");
         c.body.line("}");
         c.body.line("return os;");
       } else if (dp.isSetOfEntities()) {
         final String helperMethod = dp.getName() + "From" + dto.getSimpleName();
         fromDto.body.line("_ o.{}({}(dto.{}));", dp.getSetterMethodName(), helperMethod, dp.getName());
-        final GMethod c = mapper.getMethod(helperMethod, arg(dp.getDtoType(), "dtos"));
-        c.returnType(dp.getDomainType()).setPrivate();
+
+        String domainString = dp.isGenericType() ? dp.getGenericDomainType() : dp.getDomainType();
+        String dtoString = dp.isGenericType() ? dp.getGenericDtoType() : dp.getDtoType();
+        final GMethod c = mapper.getMethod(helperMethod, arg(dtoString, "dtos"));
+        c.returnType(domainString).setPrivate();
         // assumes Set->HashSet
         c.body.line("if (dtos == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        c.body.line("{} os = new {}();", dp.getDomainType(), dp.getDomainType().replace("Set", "HashSet"));
-        c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType());
+        c.body.line("{} os = new {}();", domainString, domainString.replace("Set", "HashSet"));
+        c.body.line("for ({} dto : dtos) {", dp.getSingleDtoType(dtoString));
         c.body.line("_ os.add(fromDto(dto));");
         c.body.line("}");
         c.body.line("return os;");

@@ -3,7 +3,7 @@ apply plugin: 'java'
 apply plugin: 'maven'
 
 group = 'com.bizo'
-version = [System.env.TRAVIS_TAG, '1.39'].find { it != null }
+version = [System.env.TRAVIS_TAG, '1.40'].find { it != null }
 sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
@@ -52,6 +52,6 @@ uploadArchives {
 
 jar{
   baseName = 'dtonator'
-  version = '1.39'
+  version = '1.40'
 }
 

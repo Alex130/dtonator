@@ -14,7 +14,7 @@ public class Prop {
   private final String setterNameMethod;
   public final boolean inherited;
   public final boolean isAbstract;
-  private final MultiValuedMap<String, GenericParts> genericTypes;
+  private final Map<String, String> genericTypes;
 
   public Prop(
     String name,
@@ -24,7 +24,7 @@ public class Prop {
     String setterNameMethod,
     boolean inherited,
     boolean isAbstract,
-    MultiValuedMap<String, GenericParts> genericTypes) {
+    Map<String, String> genericTypes) {
     super();
     this.name = name;
     this.type = type;
@@ -45,7 +45,7 @@ public class Prop {
     return setterNameMethod;
   }
 
-  public MultiValuedMap<String, GenericParts> getGenericTypes() {
+  public Map<String, String> getGenericTypes() {
     return genericTypes;
   }
 

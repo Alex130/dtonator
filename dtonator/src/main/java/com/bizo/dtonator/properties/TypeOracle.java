@@ -23,6 +23,4 @@ public interface TypeOracle {
 
   MultiValuedMap<String, GenericPartsDto> getClassTypes(String className);
 
-  String getClassTypesString(String className);
-
 }

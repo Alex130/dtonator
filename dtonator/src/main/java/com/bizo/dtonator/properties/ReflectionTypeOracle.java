@@ -58,7 +58,7 @@ public class ReflectionTypeOracle implements TypeOracle {
 
         boolean isAbstract = false;
         String type = pd.getPropertyType().getName();
-        MultiValuedMap<String, GenericParts> genericMethodMap = new ArrayListValuedHashMap<>();
+        Map<String, String> genericMethodMap = new HashMap<>();
         if (pd.getReadMethod() != null) {
 
           if (clazz.equals(pd.getReadMethod().getDeclaringClass()) || pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
@@ -72,18 +72,33 @@ public class ReflectionTypeOracle implements TypeOracle {
             System.out.println(pd.getName() + " Resolving from " + clazz + " to " + pd.getReadMethod().getDeclaringClass().toString());
             GenericsContext context = GenericsResolver.resolve(clazz).type(pd.getReadMethod().getDeclaringClass());
             Class outer = context.resolveClass(pd.getReadMethod().getGenericReturnType());
-            Class inner = null;
-            if (!clazz.equals(pd.getReadMethod().getDeclaringClass()) && pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
-              System.out.println("Resolving generic...");
-              inner = context.resolveGenericOf(pd.getReadMethod().getGenericReturnType());
+            String outerString = outer.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
+            String typeKey = type;
+            String typeValue = outerString;
+            if (pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
+              try {
+                Class inner = context.resolveGenericOf(pd.getReadMethod().getGenericReturnType());
+                System.out.println("Resolving generic...");
 
-              String outerString = outer.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
-              String innerString = inner.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
-              type = outerString + "<" + innerString + ">";
+                String innerString = inner.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
+
+                typeValue = outerString + "<" + innerString + ">";
+
+                if (!clazz.equals(pd.getReadMethod().getDeclaringClass())) {
+
+                  type = typeValue;
+                }
+                System.out.println("Resolved outer " + outer + ", inner " + inner);
+                System.out.println("");
+              } catch (NoGenericException e) {
+
+              }
             }
-            System.out.println("Resolved outer " + outer + ", inner " + inner);
-            System.out.println("");
-            genericMethodMap = GenericParser.typeToMap(pd.getReadMethod().getGenericReturnType(), pd.getName());
+
+            if (clazz.equals(pd.getReadMethod().getDeclaringClass())) {
+
+              genericMethodMap.put(typeKey, typeValue);
+            }
 
           }
 
@@ -105,10 +120,6 @@ public class ReflectionTypeOracle implements TypeOracle {
     } catch (final ClassNotFoundException iae) {
       return list();
     } catch (SecurityException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-      return list();
-    } catch (NoGenericException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
       return list();
@@ -164,17 +175,6 @@ public class ReflectionTypeOracle implements TypeOracle {
       return null;
     }
 
-  }
-
-  @Override
-  public String getClassTypesString(String className) {
-    MultiValuedMap<String, GenericPartsDto> partsMap = getClassTypes(className);
-    String typeStr = "";
-    if (partsMap != null) {
-
-      typeStr = GenericParser.typeToMapString(partsMap);
-    }
-    return typeStr;
   }
 
   @Override

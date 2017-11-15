@@ -43,7 +43,7 @@ public class PropConfigTest {
     final PropConfig pc = new PropConfig("foo ArrayList<T>");
     assertThat(pc.name, is("foo"));
     assertThat(pc.type, is("java.util.ArrayList<T>"));
-    assertThat(pc.fullType, is("java.util.ArrayList<T>"));
+
   }
 
 }

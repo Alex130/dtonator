@@ -26,6 +26,7 @@ public class DtoProperty {
   private final String setterNameMethod;
   private final boolean inherited;
   private final String genericDomainType;
+  private final String genericDtoType;
   private final boolean isAbstract;
 
   public DtoProperty(
@@ -41,7 +42,8 @@ public class DtoProperty {
     final String setterNameMethod,
     final boolean inherited,
     final boolean isAbstract,
-    final String genericDomainType) {
+    final String genericDomainType,
+    final String genericDtoType) {
     this.oracle = oracle;
     this.config = config;
     this.dto = dto;
@@ -55,6 +57,7 @@ public class DtoProperty {
     this.inherited = inherited;
     this.isAbstract = isAbstract;
     this.genericDomainType = genericDomainType;
+    this.genericDtoType = genericDtoType;
   }
 
   public DtoConfig getDto() {
@@ -70,7 +73,15 @@ public class DtoProperty {
   }
 
   public boolean isEntity() {
-    return DtoConfig.isEntity(oracle, domainType);
+    return DtoConfig.isEntity(oracle, isGenericType() ? genericDomainType : domainType);
+  }
+
+  public String getTypeArg() {
+    String typeArg = domainType;
+    if (isGenericType()) {
+      typeArg += " extends " + genericDomainType;
+    }
+    return typeArg;
   }
 
   public boolean isGenericType() {
@@ -90,11 +101,11 @@ public class DtoProperty {
   }
 
   public boolean isListOfEntities() {
-    return DtoConfig.isListOfEntities(config, domainType);
+    return DtoConfig.isListOfEntities(config, isGenericType() ? genericDomainType : domainType);
   }
 
   public boolean isSetOfEntities() {
-    return DtoConfig.isSetOfEntities(config, domainType);
+    return DtoConfig.isSetOfEntities(config, isGenericType() ? genericDomainType : domainType);
   }
 
   public boolean isListOfDtos() {
@@ -107,7 +118,12 @@ public class DtoProperty {
 
   public String getSingleDtoType() {
     // assumes isListOfEntities
-    return substringBetween(getDtoType(), "<", ">");
+    return getSingleDtoType(getDtoType());
+  }
+
+  public String getSingleDtoType(String type) {
+    // assumes isListOfEntities
+    return substringBetween(type, "<", ">");
   }
 
   public String getSimpleSingleDtoType() {
@@ -181,6 +197,14 @@ public class DtoProperty {
 
   public boolean isAbstract() {
     return isAbstract;
+  }
+
+  public String getGenericDomainType() {
+    return genericDomainType;
+  }
+
+  public String getGenericDtoType() {
+    return genericDtoType;
   }
 
 }

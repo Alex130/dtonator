@@ -1,6 +1,7 @@
 package com.bizo.dtonator.config;
 
 import static joist.util.Copy.list;
+import static joist.util.Copy.map;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,24 +79,69 @@ public class DtoConfigTest {
 
   @Test
   public void testAllPropertiesForChildWithGeneric() {
-    // given two properties
+    // given three properties
     oracle.addClassType("com.domain.Foo", "T", "extends", "Number");
     oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
-    oracle.addProperty("com.domain.Foo", "b", "T");
+    oracle.addProperty("com.domain.Foo", "b", "T", map("T", "Number"));
     oracle.addProperty("com.domain.Bar", "b", "Integer", true, false);
     oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
     // and no overrides
     addDto("FooDto", domain("Foo"), properties("*"));
     addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
     // then we have both
-    final DtoConfig dc = rootConfig.getDto("BarDto");
 
-    assertThat(dc.getAllProperties().size(), is(3));
+    DtoConfig dc = rootConfig.getDto("FooDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("T"));
+        assertThat(dp.getGenericDomainType(), is("Number"));
+      }
+    }
+
+    dc = rootConfig.getDto("BarDto");
+
     for (DtoProperty dp : dc.getAllProperties()) {
       if (dp.getName().equals("b")) {
         assertThat(dp.getDomainType(), is("Integer"));
       }
     }
+
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
+  public void testMappedPropertiesForChildWithGeneric() {
+    // given three properties
+    oracle.addClassType("com.domain.Foo", "T", "extends", "Number");
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "T", map("T", "Number"));
+    oracle.addProperty("com.domain.Bar", "b", "Integer", true, false);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and no overrides
+    addDto("FooDto", domain("Foo"), properties("b T"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then we have both
+
+    DtoConfig dc = rootConfig.getDto("FooDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("T"));
+        assertThat(dp.getGenericDtoType(), is("Number"));
+      }
+    }
+    assertThat(dc.getAllProperties().size(), is(1));
+
+    dc = rootConfig.getDto("BarDto");
+
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        assertThat(dp.getDomainType(), is("Integer"));
+      }
+    }
+
+    assertThat(dc.getAllProperties().size(), is(2));
   }
 
   @Test

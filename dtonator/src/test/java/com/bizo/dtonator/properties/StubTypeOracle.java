@@ -49,16 +49,30 @@ public class StubTypeOracle implements TypeOracle {
   }
 
   public void addProperty(final String className, final String name, final String type) {
-    addProperty(className, name, type, false, false);
+    addProperty(className, name, type, null);
+  }
+
+  public void addProperty(final String className, final String name, final String type, final Map<String, String> generics) {
+    addProperty(className, name, type, false, false, generics);
   }
 
   public void addProperty(final String className, final String name, final String type, final boolean inherited, final boolean isAbstract) {
+    addProperty(className, name, type, inherited, isAbstract, null);
+  }
+
+  public void addProperty(
+    final String className,
+    final String name,
+    final String type,
+    final boolean inherited,
+    final boolean isAbstract,
+    final Map<String, String> generics) {
     List<Prop> properties = this.properties.get(className);
     if (properties == null) {
       properties = list();
       this.properties.put(className, properties);
     }
-    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), inherited, isAbstract, null));
+    properties.add(new Prop(name, type, false, "get" + capitalize(name), "set" + capitalize(name), inherited, isAbstract, generics));
   }
 
   public void setProperties(final String className, final List<Prop> properties) {
@@ -98,9 +112,4 @@ public class StubTypeOracle implements TypeOracle {
     }
   }
 
-  @Override
-  public String getClassTypesString(String className) {
-    // TODO Auto-generated method stub
-    return null;
-  }
 }
