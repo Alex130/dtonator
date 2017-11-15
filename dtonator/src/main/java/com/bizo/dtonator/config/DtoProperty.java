@@ -131,6 +131,11 @@ public class DtoProperty {
     return substringAfterLast(getSingleDtoType(), ".");
   }
 
+  public String getSimpleSingleDtoType(String type) {
+    // assumes isListOfEntities
+    return substringAfterLast(getSingleDtoType(type), ".");
+  }
+
   public DtoConfig getSingleDto() {
     // assumes isListOfEntities (or manual isListOfDtos)
     return config.getDto(getSimpleSingleDtoType());
@@ -138,7 +143,12 @@ public class DtoProperty {
 
   public String getSingleDomainType() {
     // assumes isListOfEntities
-    return Names.listType(domainType);
+    return getSingleDomainType(domainType);
+  }
+
+  public String getSingleDomainType(String type) {
+    // assumes isListOfEntities
+    return Names.listType(type);
   }
 
   public boolean isValueType() {

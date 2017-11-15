@@ -304,41 +304,47 @@ public class GenerateDto {
       } else if (dp.isListOfEntities()) {
         // make and delegate to a method to convert the entities to dtos
         toDto.body.line("_ {}For{}(o.{}()),", dp.getName(), dto.getSimpleName(), dp.getGetterMethodName());
-        final GMethod c = mapper.getMethod(dp.getName() + "For" + dto.getSimpleName(), arg(dp.getDomainType(), "os"));
-        c.returnType(dp.getDtoType()).setPrivate();
+
+        String domainString = dp.isGenericType() ? dp.getGenericDomainType() : dp.getDomainType();
+        String dtoString = dp.isGenericType() ? dp.getGenericDtoType() : dp.getDtoType();
+        final GMethod c = mapper.getMethod(dp.getName() + "For" + dto.getSimpleName(), arg(domainString, "os"));
+        c.returnType(dtoString).setPrivate();
         // assumes dto type can be instantiated
         c.body.line("if (os == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        String collectionType = dp.getDtoType();
+        String collectionType = dtoString;
         if (dp.getDtoType().startsWith("List")) {
-          collectionType = dp.getDtoType().replaceFirst("List", "ArrayList");
-        } else if (dp.getDtoType().startsWith("java.util.List")) {
-          collectionType = dp.getDtoType().replaceFirst("java.util.List", "java.util.ArrayList");
+          collectionType = dtoString.replaceFirst("List", "ArrayList");
+        } else if (dtoString.startsWith("java.util.List")) {
+          collectionType = dtoString.replaceFirst("java.util.List", "java.util.ArrayList");
         }
-        c.body.line("{} dtos = new {}();", dp.getDtoType(), collectionType);
-        c.body.line("for ({} o : os) {", dp.getSingleDomainType());
-        c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
+        c.body.line("{} dtos = new {}();", dtoString, collectionType);
+        c.body.line("for ({} o : os) {", dp.getSingleDomainType(domainString));
+        c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType(dtoString));
         c.body.line("}");
         c.body.line("return dtos;");
       } else if (dp.isSetOfEntities()) {
         // make and delegate to a method to convert the entities to dtos
         toDto.body.line("_ {}For{}(o.{}()),", dp.getName(), dto.getSimpleName(), dp.getGetterMethodName());
-        final GMethod c = mapper.getMethod(dp.getName() + "For" + dto.getSimpleName(), arg(dp.getDomainType(), "os"));
-        c.returnType(dp.getDtoType()).setPrivate();
+
+        String domainString = dp.isGenericType() ? dp.getGenericDomainType() : dp.getDomainType();
+        String dtoString = dp.isGenericType() ? dp.getGenericDtoType() : dp.getDtoType();
+        final GMethod c = mapper.getMethod(dp.getName() + "For" + dto.getSimpleName(), arg(domainString, "os"));
+        c.returnType(dtoString).setPrivate();
         // assumes dto type can be instantiated
         c.body.line("if (os == null) {");
         c.body.line("_ return null;");
         c.body.line("}");
-        String collectionType = dp.getDtoType();
+        String collectionType = dtoString;
         if (dp.getDtoType().startsWith("Set")) {
-          collectionType = dp.getDtoType().replaceFirst("Set", "HashSet");
-        } else if (dp.getDtoType().startsWith("java.util.Set")) {
-          collectionType = dp.getDtoType().replaceFirst("java.util.Set", "java.util.HashSet");
+          collectionType = dtoString.replaceFirst("Set", "HashSet");
+        } else if (dtoString.startsWith("java.util.Set")) {
+          collectionType = dtoString.replaceFirst("java.util.Set", "java.util.HashSet");
         }
-        c.body.line("{} dtos = new {}();", dp.getDtoType(), collectionType);
-        c.body.line("for ({} o : os) {", dp.getSingleDomainType());
-        c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType());
+        c.body.line("{} dtos = new {}();", dtoString, collectionType);
+        c.body.line("for ({} o : os) {", dp.getSingleDomainType(domainString));
+        c.body.line("_ dtos.add(to{}(o));", dp.getSimpleSingleDtoType(dtoString));
         c.body.line("}");
         c.body.line("return dtos;");
       } else {
