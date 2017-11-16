@@ -57,6 +57,53 @@ public class DtoConfigTest {
   }
 
   @Test
+  public void testAllMappedPropertiesForChild() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "a", "java.lang.String", true, false);
+    oracle.addProperty("com.domain.Bar", "b", "java.lang.String", true, false);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String");
+    // and parent maps a property 'a'
+    addDto("FooDto", domain("Foo"), properties("a"));
+    addDto("BarDto", domain("Bar"), properties("*"), extendsDto("FooDto"));
+    // then child should only include mapped properties from parent
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        fail("'b' was not mapped in the parent and should have been excluded.");
+      }
+    }
+    assertThat(dc.getAllProperties().size(), is(2));
+  }
+
+  @Test
+  public void testAllOverridePropertiesForChild() {
+    // given a parent and child
+    oracle.addProperty("com.domain.Foo", "a", "java.lang.Number");
+    oracle.addProperty("com.domain.Foo", "b", "java.lang.String");
+    oracle.addProperty("com.domain.Foo", "c", "java.lang.String");
+    oracle.addProperty("com.domain.Bar", "a", "java.lang.Number", true, false);
+    oracle.addProperty("com.domain.Bar", "b", "java.lang.String", true, false);
+    oracle.addProperty("com.domain.Bar", "c", "java.lang.String", true, false);
+    oracle.addProperty("com.domain.Bar", "d", "java.lang.Long");
+    // and parent maps a property 'a'
+    addDto("FooDto", domain("Foo"), properties("a"));
+    addDto("BarDto", domain("Bar"), properties("a Integer, c, *"), extendsDto("FooDto"));
+    // then child should only include mapped properties from parent
+    // or properties that are explicitly mapped by the child.
+    final DtoConfig dc = rootConfig.getDto("BarDto");
+    for (DtoProperty dp : dc.getAllProperties()) {
+      if (dp.getName().equals("b")) {
+        fail("'b' was not mapped in the parent and should have been excluded.");
+      } else if (dp.getName().equals("a")) {
+        assertThat(dp.getDtoType(), is("java.lang.Integer"));
+      }
+    }
+    assertThat(dc.getAllProperties().size(), is(3));
+  }
+
+  @Test
   public void testAllPropertiesForChildWithList() {
     // given two properties
     oracle.addProperty("com.domain.Foo", "a", "java.lang.String");

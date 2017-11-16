@@ -28,6 +28,7 @@ public class DtoProperty {
   private final String genericDomainType;
   private final String genericDtoType;
   private final boolean isAbstract;
+  private final boolean isOverride;
 
   public DtoProperty(
     final TypeOracle oracle,
@@ -43,7 +44,8 @@ public class DtoProperty {
     final boolean inherited,
     final boolean isAbstract,
     final String genericDomainType,
-    final String genericDtoType) {
+    final String genericDtoType,
+    final boolean isOverride) {
     this.oracle = oracle;
     this.config = config;
     this.dto = dto;
@@ -58,6 +60,7 @@ public class DtoProperty {
     this.isAbstract = isAbstract;
     this.genericDomainType = genericDomainType;
     this.genericDtoType = genericDtoType;
+    this.isOverride = isOverride;
   }
 
   public DtoConfig getDto() {
@@ -215,6 +218,10 @@ public class DtoProperty {
 
   public String getGenericDtoType() {
     return genericDtoType;
+  }
+
+  public boolean isOverride() {
+    return isOverride;
   }
 
 }

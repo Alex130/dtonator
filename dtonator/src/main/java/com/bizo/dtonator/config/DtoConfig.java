@@ -71,7 +71,7 @@ public class DtoConfig {
       @Override
       public boolean evaluate(DtoProperty t) {
 
-        return !t.isInherited() && !t.isAbstract();
+        return !t.isAbstract() && (!t.isInherited() || t.isOverride());
       }
     };
 
@@ -113,7 +113,12 @@ public class DtoConfig {
 
     for (DtoProperty p : getProperties()) {
       if (!p.isAbstract()) {
-        map.put(p.getName(), p);
+        //for inherited properties we only want properties that were
+        //also included in the parent unless the child explicitly 
+        //maps the property.
+        if (!p.isInherited() || p.isOverride() || map.containsKey(p.getName())) {
+          map.put(p.getName(), p);
+        }
       }
     }
     return map;
@@ -411,6 +416,7 @@ public class DtoConfig {
       final boolean isDomainObject = isEntity(oracle, p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
+      final boolean isOverride = p.inherited;
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
         pc.markNotExtensionProperty();
         properties.add(new DtoProperty(//
@@ -427,7 +433,8 @@ public class DtoConfig {
           p.inherited,
           p.isAbstract,
           null,
-          null));
+          null,
+          isOverride));
       }
     }
   }
@@ -588,6 +595,7 @@ public class DtoConfig {
       }
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
+      final boolean isOverride = pc != null && p.inherited;
 
       properties.add(new DtoProperty(//
         oracle,
@@ -603,7 +611,8 @@ public class DtoConfig {
         p.inherited,
         p.isAbstract,
         genericDomainType,
-        genericDtoType));
+        genericDtoType,
+        isOverride));
 
     }
   }
@@ -690,7 +699,8 @@ public class DtoConfig {
         false,
         false,
         null,
-        null));
+        null,
+        false));
     }
 
   }
