@@ -89,7 +89,7 @@ EmployeeWithTypedAccountsDto:
 
 AccountDto:
   domain: Account
-  properties: '*'
+  properties: id, name
   tessellModel: false
 
 AccountTslDto:
@@ -107,7 +107,7 @@ RedAccountDto:
 YellowAccountDto:
   extends: AccountDto
   domain: YellowAccount
-  properties: '*'
+  properties: actCode, *
 
 BlueAccountDto:
   extends: AccountTslDto

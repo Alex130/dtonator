@@ -4,6 +4,7 @@ public abstract class Account {
 
   protected Long id;
   private String name;
+  private Number actCode;
 
   public Account() {
   }
@@ -27,6 +28,14 @@ public abstract class Account {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public Number getActCode() {
+    return actCode;
+  }
+
+  public void setActCode(Number actCode) {
+    this.actCode = actCode;
   }
 
 }

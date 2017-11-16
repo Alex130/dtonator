@@ -38,7 +38,7 @@ public class EmployeeExtensionDtoTest {
 
   @Test
   public void testForceMapperMethods() {
-    RedAccountDto d = new RedAccountDto(null, "a", false);
+    RedAccountDto d = new RedAccountDto(null, 1, "a", false);
     RedAccount a = mapper.fromDto(d);
     assertThat(a.getName(), is("a1"));
 

@@ -27,19 +27,19 @@ public class EmployeeWithTypedAccountsDtoTest {
 
   @Test
   public void testChildDtoExtendsParentDto() {
-    RedAccountDto red = new RedAccountDto(1L, "one", true);
+    RedAccountDto red = new RedAccountDto(1L, 2, "one", true);
     assertThat(red, is(instanceOf(AccountTslDto.class)));
   }
 
   @Test
   public void testChildDtoToString() {
-    RedAccountDto red = new RedAccountDto(1L, "one", true);
-    assertThat(red.toString(), is("RedAccountDto[1, one, true]"));
+    RedAccountDto red = new RedAccountDto(1L, 2, "one", true);
+    assertThat(red.toString(), is("RedAccountDto[1, 2, one, true]"));
   }
 
   @Test
   public void testChildDtoFullConstructorSetsValuesInBaseClass() {
-    RedAccountDto red = new RedAccountDto(1L, "one", true);
+    RedAccountDto red = new RedAccountDto(1L, 2, "one", true);
     assertThat(red.id, is(1L));
   }
 
@@ -79,7 +79,7 @@ public class EmployeeWithTypedAccountsDtoTest {
 
   @Test
   public void testFromDtoViaSubClassMethod() {
-    RedAccountDto d = new RedAccountDto(1L, "one1", true);
+    RedAccountDto d = new RedAccountDto(1L, 2, "one1", true);
     lookup.store(1L, new RedAccount(1L, "one", false));
 
     RedAccount o = mapper.fromDto(d);
@@ -90,7 +90,7 @@ public class EmployeeWithTypedAccountsDtoTest {
 
   @Test
   public void testFromDtoViaBaseClassMethod() {
-    RedAccountDto d = new RedAccountDto(1L, "one1", true);
+    RedAccountDto d = new RedAccountDto(1L, 2, "one1", true);
     lookup.store(1L, new RedAccount(1L, "one", false));
 
     RedAccount o = (RedAccount) mapper.fromDto((AccountTslDto) d);
@@ -106,8 +106,8 @@ public class EmployeeWithTypedAccountsDtoTest {
     lookup.store(3L, new BlueHueAccount(3L, "three", false, false));
 
     EmployeeWithTypedAccountsDto d = new EmployeeWithTypedAccountsDto(1L, "name2", new ArrayList<AccountTslDto>());
-    d.accounts.add(new RedAccountDto(2L, "two1", false));
-    d.accounts.add(new BlueHueAccountDto(3L, "three1", true, true));
+    d.accounts.add(new RedAccountDto(2L, 4, "two1", false));
+    d.accounts.add(new BlueHueAccountDto(3L, 5, "three1", true, true));
 
     EmployeeWithTypedAccounts o = mapper.fromDto(d);
     assertThat(o.getName(), is("name2"));
@@ -117,37 +117,37 @@ public class EmployeeWithTypedAccountsDtoTest {
 
   @Test
   public void testChildModel() {
-    RedAccountModel red = new RedAccountModel(new RedAccountDto(1L, "one", true));
+    RedAccountModel red = new RedAccountModel(new RedAccountDto(1L, 2, "one", true));
     assertThat(red.id.get(), is(1L));
     assertThat(red.name.get(), is("one"));
     assertThat(red.foo.get(), is(true));
 
-    red.merge(new RedAccountDto(2L, "two", false));
+    red.merge(new RedAccountDto(2L, 1, "two", false));
     assertThat(red.id.get(), is(2L));
     assertThat(red.name.get(), is("two"));
     assertThat(red.foo.get(), is(false));
 
     try {
-      red.merge(new BlueHueAccountDto(3L, "three", true, true));
+      red.merge(new BlueHueAccountDto(3L, 3, "three", true, true));
       Assert.fail();
     } catch (ClassCastException e) {
     }
 
     EmployeeWithTypedAccountsModel parent = new EmployeeWithTypedAccountsModel(
       new EmployeeWithTypedAccountsDto(1L, null, new ArrayList<AccountTslDto>()));
-    parent.accounts.add(new RedAccountDto(2L, "red", true));
+    parent.accounts.add(new RedAccountDto(2L, 1, "red", true));
     assertThat(parent.accountModels().get().get(0), is(instanceOf(RedAccountModel.class)));
   }
 
   @Test
   public void testGrandChildModel() {
-    BlueHueAccountModel m = new BlueHueAccountModel(new BlueHueAccountDto(1L, "one", true, false));
+    BlueHueAccountModel m = new BlueHueAccountModel(new BlueHueAccountDto(1L, 4, "one", true, false));
     assertThat(m.id.get(), is(1L));
     assertThat(m.name.get(), is("one"));
     assertThat(m.bar.get(), is(true));
     assertThat(m.zaz.get(), is(false));
 
-    m.merge(new BlueHueAccountDto(2L, "two", false, true));
+    m.merge(new BlueHueAccountDto(2L, 2, "two", false, true));
     assertThat(m.id.get(), is(2L));
     assertThat(m.name.get(), is("two"));
     assertThat(m.bar.get(), is(false));
