@@ -86,6 +86,17 @@ public class DtoConfig {
     return p;
   }
 
+  public Map<String, DtoProperty> getInheritedPropertiesMap() {
+    FluentMap<String, DtoProperty> map = new FluentMap<>();
+    for (final DtoConfig base : getBaseDtos()) {
+
+      for (DtoProperty p : base.getClassProperties()) {
+        map.put(p.getName(), p);
+      }
+    }
+    return map;
+  }
+
   /** @return the base dtos, with the root dto first. */
   private List<DtoConfig> getBaseDtos() {
     final List<DtoConfig> p = list();
@@ -107,9 +118,7 @@ public class DtoConfig {
 
   public Map<String, DtoProperty> getAllPropertiesMap() {
     FluentMap<String, DtoProperty> map = new FluentMap<>();
-    for (DtoProperty p : getInheritedProperties()) {
-      map.put(p.getName(), p);
-    }
+    map.putAll(getInheritedPropertiesMap());
 
     for (DtoProperty p : getProperties()) {
       if (!p.isAbstract()) {

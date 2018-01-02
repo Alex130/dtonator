@@ -19,6 +19,7 @@ import com.bizo.dtonator.domain.AddressGeneric;
 import com.bizo.dtonator.domain.Brother;
 import com.bizo.dtonator.domain.Child;
 import com.bizo.dtonator.domain.ChildGeneric;
+import com.bizo.dtonator.domain.HomeAddress;
 import com.bizo.dtonator.domain.ParentGeneric;
 
 import com.bizo.dtonator.domain.Sibling;
@@ -250,6 +251,60 @@ public class ReflectionTypeOracleTest {
     assertNotNull(streetProp);
     assertThat(streetProp.type, is("java.lang.String"));
     assertThat(properties.size(), is(4));
+
+  }
+
+  @Test
+  public void testPropertyInheritance() {
+
+    List<Prop> properties = oracle.getProperties(HomeAddress.class.getName(), true);
+
+    assertNotNull(properties);
+    Prop geoCodeProp = null;
+    Prop poBoxProp = null;
+    Prop streetProp = null;
+    Prop phoneProp = null;
+    Prop displayStringProp = null;
+    for (Prop p : properties) {
+      if ("geoCode".equals(p.name)) {
+        geoCodeProp = p;
+
+      }
+      if ("poBox".equals(p.name)) {
+        poBoxProp = p;
+
+      }
+      if ("street".equals(p.name)) {
+        streetProp = p;
+
+      }
+
+      if ("phone".equals(p.name)) {
+        phoneProp = p;
+
+      }
+
+      if ("displayString".equals(p.name)) {
+        displayStringProp = p;
+
+      }
+    }
+    assertNotNull(geoCodeProp);
+    assertThat(geoCodeProp.type, is("java.lang.Integer"));
+    assertThat(geoCodeProp.inherited, is(true));
+    assertNotNull(poBoxProp);
+    assertThat(poBoxProp.type, is("java.lang.String"));
+    assertThat(poBoxProp.inherited, is(true));
+    assertNotNull(streetProp);
+    assertThat(streetProp.type, is("java.lang.String"));
+    assertThat(streetProp.inherited, is(true));
+    assertNotNull(phoneProp);
+    assertThat(phoneProp.type, is("java.lang.String"));
+    assertThat(phoneProp.inherited, is(false));
+    assertNotNull(displayStringProp);
+    assertThat(displayStringProp.type, is("java.lang.String"));
+    assertThat(displayStringProp.inherited, is(true));
+    assertThat(properties.size(), is(6));
 
   }
 }

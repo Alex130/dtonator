@@ -69,7 +69,7 @@ public class ReflectionTypeOracle implements TypeOracle {
 
           if (TypeUtils.containsTypeVariables(pd.getReadMethod().getGenericReturnType())) {
 
-            System.out.println(pd.getName() + " Resolving from " + clazz + " to " + pd.getReadMethod().getDeclaringClass().toString());
+            //            System.out.println(pd.getName() + " Resolving from " + clazz + " to " + pd.getReadMethod().getDeclaringClass().toString());
             GenericsContext context = GenericsResolver.resolve(clazz).type(pd.getReadMethod().getDeclaringClass());
             Class outer = context.resolveClass(pd.getReadMethod().getGenericReturnType());
             String outerString = outer.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
@@ -78,7 +78,7 @@ public class ReflectionTypeOracle implements TypeOracle {
             if (pd.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
               try {
                 Class inner = context.resolveGenericOf(pd.getReadMethod().getGenericReturnType());
-                System.out.println("Resolving generic...");
+                //                System.out.println("Resolving generic...");
 
                 String innerString = inner.toString().replaceAll("^class ", "").replaceAll("^interface ", "");
 
@@ -88,8 +88,8 @@ public class ReflectionTypeOracle implements TypeOracle {
 
                   type = typeValue;
                 }
-                System.out.println("Resolved outer " + outer + ", inner " + inner);
-                System.out.println("");
+                //                System.out.println("Resolved outer " + outer + ", inner " + inner);
+                //                System.out.println("");
               } catch (NoGenericException e) {
 
               }
@@ -104,13 +104,18 @@ public class ReflectionTypeOracle implements TypeOracle {
 
           isAbstract = Modifier.isAbstract(pd.getReadMethod().getModifiers());
         }
+        boolean isInherited = excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName());
+        if ("displayString".equals(pd.getName())) {
+          System.out.println("Class " + className + " has a displayString property from " + pd.getReadMethod().getDeclaringClass().getName());
+          System.out.println("displayString " + (isInherited ? "is" : "not") + " inherited");
+        }
         ps.add(new Prop( //
           pd.getName(),
           type,
           pd.getWriteMethod() == null,
           pd.getReadMethod() == null ? null : pd.getReadMethod().getName(),
           pd.getWriteMethod() == null ? null : pd.getWriteMethod().getName(),
-          excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName()),
+          isInherited,
           isAbstract,
           genericMethodMap));
       }

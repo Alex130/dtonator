@@ -122,7 +122,7 @@ public class GenerateDto {
     }
     final GMethod cstr = gc.getConstructor(typeAndNames);
     final List<String> superParams = list();
-    for (DtoProperty dp : dto.getInheritedProperties()) {
+    for (DtoProperty dp : dto.getInheritedPropertiesMap().values()) {
       superParams.add(dp.getName());
     }
     cstr.body.line("super({});", Join.commaSpace(superParams));
