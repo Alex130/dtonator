@@ -17,6 +17,11 @@ EmployeeDto:
   domain: Employee
   properties: '*'
   equality: '*'
+  
+AbstractEmployerDto:
+  domainPackage: com.bizo.foo.domain
+  domain: AbstractEmployer
+  properties: id, displayString
 
 InternDto:
   domain: Intern
@@ -27,6 +32,18 @@ InternDto:
 EmployerNoNameDto:
   domain: Employer
   properties: -name, *
+
+CommonEmployerDto:
+  domainPackage: com.bizo.foo.domain
+  domain: CommonEmployer
+  extends: AbstractEmployerDto
+  properties: id, displayString, *
+
+EmployerWithNameDto:
+  domain: NewEmployer
+  extends: CommonEmployerDto
+  beanMethods: true
+  properties: id, displayString, *
  
 # testing a list of ids
 EmployeeWithAccountIdsDto:

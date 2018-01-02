@@ -1,6 +1,8 @@
-package com.bizo.dtonator.domain;
+package com.bizo.foo.domain;
 
-public abstract class AbstractEmployer {
+import com.bizo.dtonator.domain.HasId;
+
+public abstract class AbstractEmployer implements HasId {
 
   private Long id;
 
@@ -18,6 +20,10 @@ public abstract class AbstractEmployer {
 
   public void setId(final Long id) {
     this.id = id;
+  }
+
+  public String getDisplayString() {
+    return this.toString();
   }
 
 }
