@@ -71,7 +71,7 @@ public class DtoConfig {
       @Override
       public boolean evaluate(DtoProperty t) {
 
-        return !t.isAbstract() && (!t.isInherited() || t.isOverride());
+        return !t.isAbstract() && (!t.isInherited() || (t.isLocal() && !getInheritedPropertiesMap().keySet().contains(t.getName())));
       }
     };
 
@@ -125,7 +125,7 @@ public class DtoConfig {
         //for inherited properties we only want properties that were
         //also included in the parent unless the child explicitly 
         //maps the property.
-        if (!p.isInherited() || p.isOverride() || map.containsKey(p.getName())) {
+        if (!p.isInherited() || p.isLocal() || map.containsKey(p.getName())) {
           map.put(p.getName(), p);
         }
       }
@@ -425,7 +425,7 @@ public class DtoConfig {
       final boolean isDomainObject = isEntity(oracle, p.type);
       final boolean dtoTypesMatch = pc.type == null || pc.type.equals("java.lang.Long"); // we currently only support ids (longs)
       final boolean alreadyMapped = pc.mapped; // found a fooId prop config, but it mapped to an existing getFooId/setFooId domain property
-      final boolean isOverride = p.inherited;
+      final boolean isLocal = p.inherited;
       if (hasGetterSetter && isDomainObject && dtoTypesMatch && !alreadyMapped) {
         pc.markNotExtensionProperty();
         properties.add(new DtoProperty(//
@@ -443,7 +443,8 @@ public class DtoConfig {
           p.isAbstract,
           null,
           null,
-          isOverride));
+          isLocal,
+          pc.isOverride));
       }
     }
   }
@@ -604,24 +605,27 @@ public class DtoConfig {
       }
 
       final String name = pc != null ? pc.name : p.name; // use the potentially aliased if we have one
-      final boolean isOverride = pc != null && p.inherited;
+      final boolean isLocal = pc != null && p.inherited;
+      final boolean isOverride = pc != null && pc.isOverride;
 
-      properties.add(new DtoProperty(//
-        oracle,
-        root,
-        this,
-        name,
-        pc != null ? pc.isReadOnly : p.readOnly,
-        false,
-        dtoType,
-        domainType,
-        extension ? null : p.getGetterMethodName(),
-        extension ? null : p.getSetterNameMethod(),
-        p.inherited,
-        p.isAbstract,
-        genericDomainType,
-        genericDtoType,
-        isOverride));
+      properties.add(
+        new DtoProperty(
+          oracle,
+          root,
+          this,
+          name,
+          pc != null ? pc.isReadOnly : p.readOnly,
+          false,
+          dtoType,
+          domainType,
+          extension ? null : p.getGetterMethodName(),
+          extension ? null : p.getSetterNameMethod(),
+          p.inherited,
+          p.isAbstract,
+          genericDomainType,
+          genericDtoType,
+          isLocal,
+          isOverride));
 
     }
   }
@@ -709,7 +713,8 @@ public class DtoConfig {
         false,
         null,
         null,
-        false));
+        false,
+        pc.isOverride));
     }
 
   }
@@ -744,8 +749,9 @@ public class DtoConfig {
     final boolean isExclusion;
     final boolean isReadOnly;
     boolean mapped = false;
+    boolean isOverride = false;
 
-    PropConfig(final String value) {
+    PropConfig(String value) {
       // examples:
       // foo
       // foo Bar
@@ -753,6 +759,11 @@ public class DtoConfig {
       // foo(zaz) Bar
       String _name;
       String _domainName = null;
+
+      if (value.startsWith("override")) {
+        isOverride = true;
+        value = StringUtils.removeStart(value, "override");
+      }
 
       if (value.contains(" ")) {
         final String[] parts = splitIntoNameAndType(value);

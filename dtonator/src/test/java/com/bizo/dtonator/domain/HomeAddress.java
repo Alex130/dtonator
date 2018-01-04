@@ -16,4 +16,15 @@ public class HomeAddress extends Address {
   public void setPhone(String phone) {
     this.phone = phone;
   }
+
+  @Override
+  public Integer getGeoCode() {
+    return super.getGeoCode();
+  }
+
+  @Override
+  public void setGeoCode(Integer geoCode) {
+
+    super.setGeoCode(geoCode);
+  }
 }

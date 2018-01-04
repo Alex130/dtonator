@@ -28,6 +28,21 @@ public class DtoProperty {
   private final String genericDomainType;
   private final String genericDtoType;
   private final boolean isAbstract;
+  /**
+   * A property that is defined in a super class in the domain
+   * that we want to move to a child class for the DTO model.
+   * 
+   * Example: 
+   * class A{ public int id; public String foo;}
+   * class B extends A{ public String Bar; }
+   * 
+   * would generate
+   * 
+   * class ADto{ public int id;}
+   * classBDto extends ADto{ public String foo; public String bar;}
+   */
+  private final boolean isLocal;
+
   private final boolean isOverride;
 
   public DtoProperty(
@@ -45,6 +60,7 @@ public class DtoProperty {
     final boolean isAbstract,
     final String genericDomainType,
     final String genericDtoType,
+    final boolean isLocal,
     final boolean isOverride) {
     this.oracle = oracle;
     this.config = config;
@@ -60,6 +76,7 @@ public class DtoProperty {
     this.isAbstract = isAbstract;
     this.genericDomainType = genericDomainType;
     this.genericDtoType = genericDtoType;
+    this.isLocal = isLocal;
     this.isOverride = isOverride;
   }
 
@@ -218,6 +235,10 @@ public class DtoProperty {
 
   public String getGenericDtoType() {
     return genericDtoType;
+  }
+
+  public boolean isLocal() {
+    return isLocal;
   }
 
   public boolean isOverride() {

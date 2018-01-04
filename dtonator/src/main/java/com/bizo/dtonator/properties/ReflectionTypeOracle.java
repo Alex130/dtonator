@@ -104,11 +104,9 @@ public class ReflectionTypeOracle implements TypeOracle {
 
           isAbstract = Modifier.isAbstract(pd.getReadMethod().getModifiers());
         }
-        boolean isInherited = excludeInherited && className != null && !className.equals(pd.getReadMethod().getDeclaringClass().getName());
-        if ("displayString".equals(pd.getName())) {
-          System.out.println("Class " + className + " has a displayString property from " + pd.getReadMethod().getDeclaringClass().getName());
-          System.out.println("displayString " + (isInherited ? "is" : "not") + " inherited");
-        }
+        FieldUtils.getDeclaredField(clazz, pd.getName(), true);
+        boolean isInherited = excludeInherited && className != null && FieldUtils.getDeclaredField(clazz, pd.getName(), true) == null;
+
         ps.add(new Prop( //
           pd.getName(),
           type,
