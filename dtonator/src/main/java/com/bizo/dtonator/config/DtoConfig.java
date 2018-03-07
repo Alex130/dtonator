@@ -188,12 +188,12 @@ public class DtoConfig {
               boundType = splitTypes[1];
 
             }
-            if (root.getDto(boundType) != null) {
-              // the type was FooDto, we need to fully qualify it
-              gp.boundClass = root.getDto(boundType).getDtoType();
-            } else {
-              gp.boundClass = boundType;
-            }
+            //            if (root.getDto(boundType) != null) {
+            //              // the type was FooDto, we need to fully qualify it
+            //              gp.boundClass = root.getDto(boundType).getDtoType();
+            //            } else {
+            gp.boundClass = boundType;
+            //            }
             parts.put(gp.typeVar, gp);
           }
         }

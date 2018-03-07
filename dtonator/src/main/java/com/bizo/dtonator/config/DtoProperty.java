@@ -148,12 +148,22 @@ public class DtoProperty {
 
   public String getSimpleSingleDtoType() {
     // assumes isListOfEntities
-    return substringAfterLast(getSingleDtoType(), ".");
+    String singleType = getSingleDtoType();
+    if (singleType != null && singleType.contains(".")) {
+      return substringAfterLast(singleType, ".");
+    } else {
+      return singleType;
+    }
   }
 
   public String getSimpleSingleDtoType(String type) {
     // assumes isListOfEntities
-    return substringAfterLast(getSingleDtoType(type), ".");
+    String singleType = getSingleDtoType(type);
+    if (singleType != null && singleType.contains(".")) {
+      return substringAfterLast(singleType, ".");
+    } else {
+      return singleType;
+    }
   }
 
   public DtoConfig getSingleDto() {
